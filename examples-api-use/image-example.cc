@@ -23,19 +23,17 @@
 #include <stdio.h>
 #include <unistd.h>
 
-#include <exception>
 #include <Magick++.h>
+#include <exception>
 #include <magick/image.h>
 
 using rgb_matrix::Canvas;
-using rgb_matrix::RGBMatrix;
 using rgb_matrix::FrameCanvas;
+using rgb_matrix::RGBMatrix;
 
 // Make sure we can exit gracefully when Ctrl-C is pressed.
 volatile bool interrupt_received = false;
-static void InterruptHandler(int signo) {
-  interrupt_received = true;
-}
+static void InterruptHandler(int signo) { interrupt_received = true; }
 
 using ImageVector = std::vector<Magick::Image>;
 
@@ -43,8 +41,7 @@ using ImageVector = std::vector<Magick::Image>;
 // matrix.
 // // If this is an animated image, the resutlting vector will contain multiple.
 static ImageVector LoadImageAndScaleImage(const char *filename,
-                                          int target_width,
-                                          int target_height) {
+                                          int target_width, int target_height) {
   ImageVector result;
 
   ImageVector frames;
@@ -75,12 +72,11 @@ static ImageVector LoadImageAndScaleImage(const char *filename,
   return result;
 }
 
-
 // Copy an image to a Canvas. Note, the RGBMatrix is implementing the Canvas
 // interface as well as the FrameCanvas we use in the double-buffering of the
 // animted image.
 void CopyImageToCanvas(const Magick::Image &image, Canvas *canvas) {
-  const int offset_x = 0, offset_y = 0;  // If you want to move the image.
+  const int offset_x = 0, offset_y = 0; // If you want to move the image.
   // Copy all the pixels to the canvas.
   for (size_t y = 0; y < image.rows(); ++y) {
     for (size_t x = 0; x < image.columns(); ++x) {
@@ -101,10 +97,11 @@ void ShowAnimatedImage(const ImageVector &images, RGBMatrix *matrix) {
   FrameCanvas *offscreen_canvas = matrix->CreateFrameCanvas();
   while (!interrupt_received) {
     for (const auto &image : images) {
-      if (interrupt_received) break;
+      if (interrupt_received)
+        break;
       CopyImageToCanvas(image, offscreen_canvas);
       offscreen_canvas = matrix->SwapOnVSync(offscreen_canvas);
-      usleep(image.animationDelay() * 10000);  // 1/100s converted to usec
+      usleep(image.animationDelay() * 10000); // 1/100s converted to usec
     }
   }
 }
@@ -122,8 +119,8 @@ int main(int argc, char *argv[]) {
   // Initialize the RGB matrix with
   RGBMatrix::Options matrix_options;
   rgb_matrix::RuntimeOptions runtime_opt;
-  if (!rgb_matrix::ParseOptionsFromFlags(&argc, &argv,
-                                         &matrix_options, &runtime_opt)) {
+  if (!rgb_matrix::ParseOptionsFromFlags(&argc, &argv, &matrix_options,
+                                         &runtime_opt)) {
     return usage(argv[0]);
   }
 
@@ -138,17 +135,17 @@ int main(int argc, char *argv[]) {
   if (matrix == NULL)
     return 1;
 
-  ImageVector images = LoadImageAndScaleImage(filename,
-                                              matrix->width(),
-                                              matrix->height());
+  ImageVector images =
+      LoadImageAndScaleImage(filename, matrix->width(), matrix->height());
   switch (images.size()) {
-  case 0:   // failed to load image.
+  case 0: // failed to load image.
     break;
-  case 1:   // Simple example: one image to show
+  case 1: // Simple example: one image to show
     CopyImageToCanvas(images[0], matrix);
-    while (!interrupt_received) sleep(1000);  // Until Ctrl-C is pressed
+    while (!interrupt_received)
+      sleep(1000); // Until Ctrl-C is pressed
     break;
-  default:  // More than one image: this is an animation.
+  default: // More than one image: this is an animation.
     ShowAnimatedImage(images, matrix);
     break;
   }

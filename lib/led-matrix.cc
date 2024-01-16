@@ -17,9 +17,9 @@
 
 #include <assert.h>
 #include <grp.h>
-#include <pwd.h>
 #include <math.h>
 #include <pthread.h>
+#include <pwd.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -29,18 +29,20 @@
 #include <time.h>
 #include <unistd.h>
 
-#include "gpio.h"
-#include "thread.h"
 #include "framebuffer-internal.h"
+#include "gpio.h"
 #include "multiplex-mappers-internal.h"
+#include "thread.h"
 
 // Leave this in here for a while. Setting things from old defines.
 #if defined(ADAFRUIT_RGBMATRIX_HAT)
-#  error "ADAFRUIT_RGBMATRIX_HAT has long been deprecated. Please use the Options struct or --led-gpio-mapping=adafruit-hat commandline flag"
+#error                                                                         \
+    "ADAFRUIT_RGBMATRIX_HAT has long been deprecated. Please use the Options struct or --led-gpio-mapping=adafruit-hat commandline flag"
 #endif
 
 #if defined(ADAFRUIT_RGBMATRIX_HAT_PWM)
-#  error "ADAFRUIT_RGBMATRIX_HAT_PWM has long been deprecated. Please use the Options struct or --led-gpio-mapping=adafruit-hat-pwm commandline flag"
+#error                                                                         \
+    "ADAFRUIT_RGBMATRIX_HAT_PWM has long been deprecated. Please use the Options struct or --led-gpio-mapping=adafruit-hat-pwm commandline flag"
 #endif
 
 namespace rgb_matrix {
@@ -55,7 +57,8 @@ public:
   // Needs an initialized GPIO object and configuration options from the
   // RGBMatrix::Options struct.
   //
-  // If you pass an GPIO object (which has to be Init()ialized), it will start  // the internal thread to start the screen immediately.
+  // If you pass an GPIO object (which has to be Init()ialized), it will start
+  // // the internal thread to start the screen immediately.
   //
   // If you need finer control over when the refresh thread starts (which you
   // might when you become a daemon), pass NULL here and see SetGPIO() method.
@@ -77,7 +80,7 @@ public:
   bool ApplyPixelMapper(const PixelMapper *mapper);
 
   bool SetPWMBits(uint8_t value);
-  uint8_t pwmbits();   // return the pwm-bits of the currently active buffer.
+  uint8_t pwmbits(); // return the pwm-bits of the currently active buffer.
 
   void set_luminance_correct(bool on);
   bool luminance_correct() const;
@@ -94,13 +97,14 @@ public:
   void OutputGPIO(uint64_t output_bits);
 
   void Clear();
+
 private:
   friend class RGBMatrix;
 
   // Apply pixel mappers that have been passed down via a configuration
   // string.
-  void ApplyNamedPixelMappers(const char *pixel_mapper_config,
-                              int chain, int parallel);
+  void ApplyNamedPixelMappers(const char *pixel_mapper_config, int chain,
+                              int parallel);
 
   Options params_;
   bool do_luminance_correct_;
@@ -110,7 +114,7 @@ private:
   GPIO *io_;
   Mutex active_frame_sync_;
   UpdateThread *updater_;
-  std::vector<FrameCanvas*> created_frames_;
+  std::vector<FrameCanvas *> created_frames_;
   internal::PixelDesignatorMap *shared_pixel_mapper_;
   uint64_t user_output_bits_;
 };
@@ -120,28 +124,32 @@ using namespace internal;
 // Pump pixels to screen. Needs to be high priority real-time because jitter
 class RGBMatrix::Impl::UpdateThread : public Thread {
 public:
-  UpdateThread(GPIO *io, FrameCanvas *initial_frame,
-               int pwm_dither_bits, bool show_refresh,
-               int limit_refresh_hz)
-    : io_(io), show_refresh_(show_refresh),
-      target_frame_usec_(limit_refresh_hz < 1 ? 0 : 1e6/limit_refresh_hz),
-      running_(true),
-      current_frame_(initial_frame), next_frame_(NULL),
-      requested_frame_multiple_(1) {
+  UpdateThread(GPIO *io, FrameCanvas *initial_frame, int pwm_dither_bits,
+               bool show_refresh, int limit_refresh_hz)
+      : io_(io), show_refresh_(show_refresh),
+        target_frame_usec_(limit_refresh_hz < 1 ? 0 : 1e6 / limit_refresh_hz),
+        running_(true), current_frame_(initial_frame), next_frame_(NULL),
+        requested_frame_multiple_(1) {
     pthread_cond_init(&frame_done_, NULL);
     pthread_cond_init(&input_change_, NULL);
     switch (pwm_dither_bits) {
     case 0:
-      start_bit_[0] = 0; start_bit_[1] = 0;
-      start_bit_[2] = 0; start_bit_[3] = 0;
+      start_bit_[0] = 0;
+      start_bit_[1] = 0;
+      start_bit_[2] = 0;
+      start_bit_[3] = 0;
       break;
     case 1:
-      start_bit_[0] = 0; start_bit_[1] = 1;
-      start_bit_[2] = 0; start_bit_[3] = 1;
+      start_bit_[0] = 0;
+      start_bit_[1] = 1;
+      start_bit_[2] = 0;
+      start_bit_[3] = 1;
       break;
     case 2:
-      start_bit_[0] = 0; start_bit_[1] = 1;
-      start_bit_[2] = 2; start_bit_[3] = 2;
+      start_bit_[0] = 0;
+      start_bit_[1] = 1;
+      start_bit_[2] = 2;
+      start_bit_[3] = 2;
       break;
     }
   }
@@ -166,15 +174,15 @@ public:
     while (running()) {
       const uint32_t start_time_us = GetMicrosecondCounter();
 
-      current_frame_->framebuffer()
-        ->DumpToMatrix(io_, start_bit_[low_bit_sequence % 4]);
+      current_frame_->framebuffer()->DumpToMatrix(
+          io_, start_bit_[low_bit_sequence % 4]);
 
       // SwapOnVSync() exchange.
       {
         MutexLock l(&frame_sync_);
         // Do fast equality test first (likely due to frame_count reset).
-        if (frame_count == requested_frame_multiple_
-            || frame_count % requested_frame_multiple_ == 0) {
+        if (frame_count == requested_frame_multiple_ ||
+            frame_count % requested_frame_multiple_ == 0) {
           // We reset to avoid frame hick-up every couple of weeks
           // run-time iff requested_frame_multiple_ is not a factor of 2^32.
           frame_count = 0;
@@ -212,10 +220,12 @@ public:
           largest_time = usec;
           const float lowest_hz = 1e6 / largest_time;
           printf(" (lowest: %.1fHz)"
-                 "\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b", lowest_hz);
+                 "\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b",
+                 lowest_hz);
         } else {
           // Don't measure at startup, as times will be janky.
-          max_measure_enabled = (end_time_us - initial_holdoff_start) > kHoldffTimeUs;
+          max_measure_enabled =
+              (end_time_us - initial_holdoff_start) > kHoldffTimeUs;
         }
       }
     }
@@ -262,61 +272,58 @@ private:
 };
 
 // Some defaults. See options-initialize.cc for the command line parsing.
-RGBMatrix::Options::Options() :
-  // Historically, we provided these options only as #defines. Make sure that
-  // things still behave as before if someone has set these.
-  // At some point: remove them from the Makefile. Later: remove them here.
+RGBMatrix::Options::Options()
+    :
+// Historically, we provided these options only as #defines. Make sure that
+// things still behave as before if someone has set these.
+// At some point: remove them from the Makefile. Later: remove them here.
 #ifdef DEFAULT_HARDWARE
-  hardware_mapping(DEFAULT_HARDWARE),
+      hardware_mapping(DEFAULT_HARDWARE),
 #else
-  hardware_mapping("regular"),
+      hardware_mapping("regular"),
 #endif
 
-  rows(32), cols(32), chain_length(1), parallel(1),
-  pwm_bits(internal::Framebuffer::kDefaultBitPlanes),
+      rows(32), cols(32), chain_length(1), parallel(1),
+      pwm_bits(internal::Framebuffer::kDefaultBitPlanes),
 
 #ifdef LSB_PWM_NANOSECONDS
-    pwm_lsb_nanoseconds(LSB_PWM_NANOSECONDS),
+      pwm_lsb_nanoseconds(LSB_PWM_NANOSECONDS),
 #else
-    pwm_lsb_nanoseconds(130),
+      pwm_lsb_nanoseconds(130),
 #endif
 
-  pwm_dither_bits(0),
-  brightness(100),
+      pwm_dither_bits(0), brightness(100),
 
 #ifdef RGB_SCAN_INTERLACED
-    scan_mode(1),
+      scan_mode(1),
 #else
-    scan_mode(0),
+      scan_mode(0),
 #endif
 
-  row_address_type(0),
-  multiplexing(0),
+      row_address_type(0), multiplexing(0),
 
 #ifdef DISABLE_HARDWARE_PULSES
-    disable_hardware_pulsing(true),
+      disable_hardware_pulsing(true),
 #else
-    disable_hardware_pulsing(false),
+      disable_hardware_pulsing(false),
 #endif
 
 #ifdef SHOW_REFRESH_RATE
-    show_refresh_rate(true),
+      show_refresh_rate(true),
 #else
-    show_refresh_rate(false),
+      show_refresh_rate(false),
 #endif
 
 #ifdef INVERSE_RGB_DISPLAY_COLORS
-    inverse_colors(true),
+      inverse_colors(true),
 #else
-    inverse_colors(false),
+      inverse_colors(false),
 #endif
-  led_rgb_sequence("RGB"),
-  pixel_mapper_config(NULL),
-  panel_type(NULL),
+      led_rgb_sequence("RGB"), pixel_mapper_config(NULL), panel_type(NULL),
 #ifdef FIXED_FRAME_MICROSECONDS
-  limit_refresh_rate_hz(1e6 / FIXED_FRAME_MICROSECONDS)
+      limit_refresh_rate_hz(1e6 / FIXED_FRAME_MICROSECONDS)
 #else
-  limit_refresh_rate_hz(0)
+      limit_refresh_rate_hz(0)
 #endif
 {
   // Nothing to see here.
@@ -328,7 +335,7 @@ RGBMatrix::Options::Options() :
 static void PrintOptions(const RGBMatrix::Options &o) {
 #define P_INT(val) fprintf(stderr, "%s : %d\n", #val, o.val)
 #define P_STR(val) fprintf(stderr, "%s : %s\n", #val, o.val)
-#define P_BOOL(val) fprintf(stderr, "%s : %s\n", #val, o.val ? "true":"false")
+#define P_BOOL(val) fprintf(stderr, "%s : %s\n", #val, o.val ? "true" : "false")
   P_STR(hardware_mapping);
   P_INT(rows);
   P_INT(cols);
@@ -352,11 +359,11 @@ static void PrintOptions(const RGBMatrix::Options &o) {
 #undef P_STR
 #undef P_BOOL
 }
-#endif  // DEBUG_MATRIX_OPTIONS
+#endif // DEBUG_MATRIX_OPTIONS
 
 RGBMatrix::Impl::Impl(GPIO *io, const Options &options)
-  : params_(options), io_(NULL), updater_(NULL), shared_pixel_mapper_(NULL),
-    user_output_bits_(0) {
+    : params_(options), io_(NULL), updater_(NULL), shared_pixel_mapper_(NULL),
+      user_output_bits_(0) {
   assert(params_.Validate(NULL));
 #if DEBUG_MATRIX_OPTIONS
   PrintOptions(params_);
@@ -364,7 +371,7 @@ RGBMatrix::Impl::Impl(GPIO *io, const Options &options)
   const MultiplexMapper *multiplex_mapper = NULL;
   if (params_.multiplexing > 0) {
     const MuxMapperList &multiplexers = GetRegisteredMultiplexMappers();
-    if (params_.multiplexing <= (int) multiplexers.size()) {
+    if (params_.multiplexing <= (int)multiplexers.size()) {
       // TODO: we could also do a find-by-name here, but not sure if worthwhile
       multiplex_mapper = multiplexers[params_.multiplexing - 1];
     }
@@ -386,8 +393,8 @@ RGBMatrix::Impl::Impl(GPIO *io, const Options &options)
   ApplyPixelMapper(multiplex_mapper);
 
   // .. followed by higher level mappers that might arrange panels.
-  ApplyNamedPixelMappers(options.pixel_mapper_config,
-                         params_.chain_length, params_.parallel);
+  ApplyNamedPixelMappers(options.pixel_mapper_config, params_.chain_length,
+                         params_.parallel);
 }
 
 RGBMatrix::Impl::~Impl() {
@@ -399,7 +406,8 @@ RGBMatrix::Impl::~Impl() {
 
   // Make sure LEDs are off.
   active_->Clear();
-  if (io_) active_->framebuffer()->DumpToMatrix(io_, 0);
+  if (io_)
+    active_->framebuffer()->DumpToMatrix(io_, 0);
 
   for (size_t i = 0; i < created_frames_.size(); ++i) {
     delete created_frames_[i];
@@ -407,9 +415,7 @@ RGBMatrix::Impl::~Impl() {
   delete shared_pixel_mapper_;
 }
 
-RGBMatrix::~RGBMatrix() {
-  delete impl_;
-}
+RGBMatrix::~RGBMatrix() { delete impl_; }
 
 uint64_t RGBMatrix::Impl::RequestInputs(uint64_t bits) {
   return io_->RequestInputs(bits);
@@ -440,10 +446,12 @@ void RGBMatrix::Impl::ApplyNamedPixelMappers(const char *pixel_mapper_config,
       *optional_param_start++ = '\0';
     }
     if (*s == '\0' && optional_param_start && *optional_param_start != '\0') {
-      fprintf(stderr, "Stray parameter ':%s' without mapper name ?\n", optional_param_start);
+      fprintf(stderr, "Stray parameter ':%s' without mapper name ?\n",
+              optional_param_start);
     }
     if (*s) {
-      ApplyPixelMapper(FindPixelMapper(s, chain, parallel, optional_param_start));
+      ApplyPixelMapper(
+          FindPixelMapper(s, chain, parallel, optional_param_start));
     }
     s = semicolon + 1;
   }
@@ -477,20 +485,16 @@ bool RGBMatrix::Impl::StartRefresh() {
     //   core #3 will succeed.
     // The Raspberry Pi1 only has one core, so this affinity
     //   call will simply fail and we keep using the only core.
-    updater_->Start(99, (1<<3));  // Prio: high. Also: put on last CPU.
+    updater_->Start(99, (1 << 3)); // Prio: high. Also: put on last CPU.
   }
   return updater_ != NULL;
 }
 
 FrameCanvas *RGBMatrix::Impl::CreateFrameCanvas() {
-  FrameCanvas *result =
-    new FrameCanvas(new Framebuffer(params_.rows,
-                                    params_.cols * params_.chain_length,
-                                    params_.parallel,
-                                    params_.scan_mode,
-                                    params_.led_rgb_sequence,
-                                    params_.inverse_colors,
-                                    &shared_pixel_mapper_));
+  FrameCanvas *result = new FrameCanvas(new Framebuffer(
+      params_.rows, params_.cols * params_.chain_length, params_.parallel,
+      params_.scan_mode, params_.led_rgb_sequence, params_.inverse_colors,
+      &shared_pixel_mapper_));
   if (created_frames_.empty()) {
     // First time. Get defaults from initial Framebuffer.
     do_luminance_correct_ = result->framebuffer()->luminance_correct();
@@ -504,11 +508,18 @@ FrameCanvas *RGBMatrix::Impl::CreateFrameCanvas() {
 
   if (created_frames_.size() % 500 == 0) {
     if (created_frames_.size() == 500) {
-      fprintf(stderr, "CreateFrameCanvas() called %d times; Usually you only want to call it once (or at most a few times) for double-buffering. These frames will not be freed until the end of the program.\n"
-              "Typical reasons: \n"
-              "  * Accidentally called CreateFrameCanvas() inside your inner loop (move outside the loop. Create offscreen-canvas once, then re-use. See SwapOnVSync() examples).\n"
-              "  * Used to pre-compute many frames (use led_matrix::StreamWriter instead for such use-case. See e.g. led-image-viewer)\n",
-              (int)created_frames_.size());
+      fprintf(
+          stderr,
+          "CreateFrameCanvas() called %d times; Usually you only want to call "
+          "it once (or at most a few times) for double-buffering. These frames "
+          "will not be freed until the end of the program.\n"
+          "Typical reasons: \n"
+          "  * Accidentally called CreateFrameCanvas() inside your inner loop "
+          "(move outside the loop. Create offscreen-canvas once, then re-use. "
+          "See SwapOnVSync() examples).\n"
+          "  * Used to pre-compute many frames (use led_matrix::StreamWriter "
+          "instead for such use-case. See e.g. led-image-viewer)\n",
+          (int)created_frames_.size());
     } else {
       fprintf(stderr, "FYI: CreateFrameCanvas() now called %d times.\n",
               (int)created_frames_.size());
@@ -520,15 +531,19 @@ FrameCanvas *RGBMatrix::Impl::CreateFrameCanvas() {
 
 FrameCanvas *RGBMatrix::Impl::SwapOnVSync(FrameCanvas *other,
                                           unsigned frame_fraction) {
-  if (frame_fraction == 0) frame_fraction = 1; // correct user error.
-  if (!updater_) return NULL;
+  if (frame_fraction == 0)
+    frame_fraction = 1; // correct user error.
+  if (!updater_)
+    return NULL;
   FrameCanvas *const previous = updater_->SwapOnVSync(other, frame_fraction);
-  if (other) active_ = other;
+  if (other)
+    active_ = other;
   return previous;
 }
 
 uint64_t RGBMatrix::Impl::AwaitInputChange(int timeout_ms) {
-  if (!updater_) return 0;
+  if (!updater_)
+    return 0;
   return updater_->AwaitInputChange(timeout_ms);
 }
 
@@ -557,12 +572,11 @@ void RGBMatrix::Impl::SetBrightness(uint8_t brightness) {
   params_.brightness = brightness;
 }
 
-uint8_t RGBMatrix::Impl::brightness() {
-  return params_.brightness;
-}
+uint8_t RGBMatrix::Impl::brightness() { return params_.brightness; }
 
 bool RGBMatrix::Impl::ApplyPixelMapper(const PixelMapper *mapper) {
-  if (mapper == NULL) return true;
+  if (mapper == NULL)
+    return true;
   using internal::PixelDesignatorMap;
   const int old_width = shared_pixel_mapper_->width();
   const int old_height = shared_pixel_mapper_->height();
@@ -571,16 +585,17 @@ bool RGBMatrix::Impl::ApplyPixelMapper(const PixelMapper *mapper) {
     return false;
   }
   PixelDesignatorMap *new_mapper = new PixelDesignatorMap(
-    new_width, new_height, shared_pixel_mapper_->GetFillColorBits());
+      new_width, new_height, shared_pixel_mapper_->GetFillColorBits());
   for (int y = 0; y < new_height; ++y) {
     for (int x = 0; x < new_width; ++x) {
       int orig_x = -1, orig_y = -1;
-      mapper->MapVisibleToMatrix(old_width, old_height,
-                                 x, y, &orig_x, &orig_y);
-      if (orig_x < 0 || orig_y < 0 ||
-          orig_x >= old_width || orig_y >= old_height) {
-        fprintf(stderr, "Error in PixelMapper: (%d, %d) -> (%d, %d) [range: "
-                "%dx%d]\n", x, y, orig_x, orig_y, old_width, old_height);
+      mapper->MapVisibleToMatrix(old_width, old_height, x, y, &orig_x, &orig_y);
+      if (orig_x < 0 || orig_y < 0 || orig_x >= old_width ||
+          orig_y >= old_height) {
+        fprintf(stderr,
+                "Error in PixelMapper: (%d, %d) -> (%d, %d) [range: "
+                "%dx%d]\n",
+                x, y, orig_x, orig_y, old_width, old_height);
         continue;
       }
       const internal::PixelDesignator *orig_designator;
@@ -598,14 +613,16 @@ bool RGBMatrix::Impl::ApplyPixelMapper(const PixelMapper *mapper) {
 static bool drop_privs(const char *priv_user, const char *priv_group) {
   uid_t ruid, euid, suid;
   if (getresuid(&ruid, &euid, &suid) >= 0) {
-    if (euid != 0)   // not root anyway. No priv dropping.
+    if (euid != 0) // not root anyway. No priv dropping.
       return true;
   }
 
-  if (priv_user == nullptr || priv_user[0] == 0) priv_user = "daemon";
-  if (priv_group == nullptr || priv_group[0] == 0) priv_group = "daemon";
+  if (priv_user == nullptr || priv_user[0] == 0)
+    priv_user = "daemon";
+  if (priv_group == nullptr || priv_group[0] == 0)
+    priv_group = "daemon";
 
-  gid_t gid = atoi(priv_group);  // Attempt to parse as GID first
+  gid_t gid = atoi(priv_group); // Attempt to parse as GID first
   if (gid == 0) {
     struct group *g = getgrnam(priv_group);
     if (g == NULL) {
@@ -619,7 +636,7 @@ static bool drop_privs(const char *priv_user, const char *priv_group) {
     return false;
   }
 
-  uid_t uid = atoi(priv_user);  // Attempt to parse as UID first.
+  uid_t uid = atoi(priv_user); // Attempt to parse as UID first.
   if (uid == 0) {
     struct passwd *p = getpwnam(priv_user);
     if (p == NULL) {
@@ -650,11 +667,10 @@ RGBMatrix *RGBMatrix::CreateFromOptions(const RGBMatrix::Options &options,
     return NULL;
   }
 
-  static GPIO io;  // This static var is a little bit icky.
-  if (runtime_options.do_gpio_init
-      && !io.Init(runtime_options.gpio_slowdown)) {
+  static GPIO io; // This static var is a little bit icky.
+  if (runtime_options.do_gpio_init && !io.Init(runtime_options.gpio_slowdown)) {
     fprintf(stderr, "Must run as root to be able to access /dev/mem\n"
-            "Prepend 'sudo' to the command\n");
+                    "Prepend 'sudo' to the command\n");
     return NULL;
   }
 
@@ -673,8 +689,7 @@ RGBMatrix *RGBMatrix::CreateFromOptions(const RGBMatrix::Options &options,
   // realtime thread that usually requires root to be established.
   // Double check and document.
   if (runtime_options.drop_privileges > 0) {
-    drop_privs(runtime_options.drop_priv_user,
-               runtime_options.drop_priv_group);
+    drop_privs(runtime_options.drop_priv_user, runtime_options.drop_priv_group);
   }
 
   return new RGBMatrix(result);
@@ -736,21 +751,16 @@ void RGBMatrix::OutputGPIO(uint64_t output_bits) {
 bool RGBMatrix::StartRefresh() { return impl_->StartRefresh(); }
 
 // -- Implementation of RGBMatrix Canvas: delegation to ContentBuffer
-int RGBMatrix::width() const {
-  return impl_->active_->width();
-}
+int RGBMatrix::width() const { return impl_->active_->width(); }
 
-int RGBMatrix::height() const {
-  return impl_->active_->height();
-}
+int RGBMatrix::height() const { return impl_->active_->height(); }
 
-void RGBMatrix::SetPixel(int x, int y, uint8_t red, uint8_t green, uint8_t blue) {
+void RGBMatrix::SetPixel(int x, int y, uint8_t red, uint8_t green,
+                         uint8_t blue) {
   impl_->active_->SetPixel(x, y, red, green, blue);
 }
 
-void RGBMatrix::Clear() {
-  impl_->active_->Clear();
-}
+void RGBMatrix::Clear() { impl_->active_->Clear(); }
 
 void RGBMatrix::Fill(uint8_t red, uint8_t green, uint8_t blue) {
   impl_->active_->Fill(red, green, blue);
@@ -760,26 +770,34 @@ void RGBMatrix::Fill(uint8_t red, uint8_t green, uint8_t blue) {
 FrameCanvas::~FrameCanvas() { delete frame_; }
 int FrameCanvas::width() const { return frame_->width(); }
 int FrameCanvas::height() const { return frame_->height(); }
-void FrameCanvas::SetPixel(int x, int y,
-                         uint8_t red, uint8_t green, uint8_t blue) {
+void FrameCanvas::SetPixel(int x, int y, uint8_t red, uint8_t green,
+                           uint8_t blue) {
   frame_->SetPixel(x, y, red, green, blue);
 }
 void FrameCanvas::SetPixels(int x, int y, int width, int height,
-                         Color *colors) {
+                            Color *colors) {
   frame_->SetPixels(x, y, width, height, colors);
 }
 void FrameCanvas::Clear() { return frame_->Clear(); }
 void FrameCanvas::Fill(uint8_t red, uint8_t green, uint8_t blue) {
   frame_->Fill(red, green, blue);
 }
-bool FrameCanvas::SetPWMBits(uint8_t value) { return frame_->SetPWMBits(value); }
+bool FrameCanvas::SetPWMBits(uint8_t value) {
+  return frame_->SetPWMBits(value);
+}
 uint8_t FrameCanvas::pwmbits() { return frame_->pwmbits(); }
 
 // Map brightness of output linearly to input with CIE1931 profile.
-void FrameCanvas::set_luminance_correct(bool on) { frame_->set_luminance_correct(on); }
-bool FrameCanvas::luminance_correct() const { return frame_->luminance_correct(); }
+void FrameCanvas::set_luminance_correct(bool on) {
+  frame_->set_luminance_correct(on);
+}
+bool FrameCanvas::luminance_correct() const {
+  return frame_->luminance_correct();
+}
 
-void FrameCanvas::SetBrightness(uint8_t brightness) { frame_->SetBrightness(brightness); }
+void FrameCanvas::SetBrightness(uint8_t brightness) {
+  frame_->SetBrightness(brightness);
+}
 uint8_t FrameCanvas::brightness() { return frame_->brightness(); }
 
 void FrameCanvas::Serialize(const char **data, size_t *len) const {
@@ -791,4 +809,4 @@ bool FrameCanvas::Deserialize(const char *data, size_t len) {
 void FrameCanvas::CopyFrom(const FrameCanvas &other) {
   frame_->CopyFrom(other.frame_);
 }
-}  // end namespace rgb_matrix
+} // end namespace rgb_matrix

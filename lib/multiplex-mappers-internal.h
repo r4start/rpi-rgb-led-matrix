@@ -31,8 +31,8 @@ public:
 };
 
 // Returns a vector of the registered Multiplex mappers.
-typedef std::vector<const MultiplexMapper*> MuxMapperList;
+typedef std::vector<const MultiplexMapper *> MuxMapperList;
 const MuxMapperList &GetRegisteredMultiplexMappers();
 
-}  // namespace internal
-}  // namespace rgb_matrix
+} // namespace internal
+} // namespace rgb_matrix

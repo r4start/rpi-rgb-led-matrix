@@ -7,8 +7,8 @@
 // This is a grab-bag of various demos and not very readable.
 #include "led-matrix.h"
 
-#include "pixel-mapper.h"
 #include "graphics.h"
+#include "pixel-mapper.h"
 
 #include <assert.h>
 #include <getopt.h>
@@ -22,18 +22,16 @@
 
 #include <algorithm>
 
-using std::min;
 using std::max;
+using std::min;
 
-#define TERM_ERR  "\033[1;31m"
+#define TERM_ERR "\033[1;31m"
 #define TERM_NORM "\033[0m"
 
 using namespace rgb_matrix;
 
 volatile bool interrupt_received = false;
-static void InterruptHandler(int signo) {
-  interrupt_received = true;
-}
+static void InterruptHandler(int signo) { interrupt_received = true; }
 
 class DemoRunner {
 protected:
@@ -92,8 +90,7 @@ private:
 // Simple generator that pulses through brightness on red, green, blue and white
 class BrightnessPulseGenerator : public DemoRunner {
 public:
-  BrightnessPulseGenerator(RGBMatrix *m)
-    : DemoRunner(m), matrix_(m) {}
+  BrightnessPulseGenerator(RGBMatrix *m) : DemoRunner(m), matrix_(m) {}
   void Run() override {
     const uint8_t max_brightness = matrix_->brightness();
     const uint8_t c = 255;
@@ -108,10 +105,18 @@ public:
       }
 
       switch (count % 4) {
-      case 0: matrix_->Fill(c, 0, 0); break;
-      case 1: matrix_->Fill(0, c, 0); break;
-      case 2: matrix_->Fill(0, 0, c); break;
-      case 3: matrix_->Fill(c, c, c); break;
+      case 0:
+        matrix_->Fill(c, 0, 0);
+        break;
+      case 1:
+        matrix_->Fill(0, c, 0);
+        break;
+      case 2:
+        matrix_->Fill(0, 0, c);
+        break;
+      case 3:
+        matrix_->Fill(c, c, c);
+        break;
       }
 
       usleep(20 * 1000);
@@ -129,14 +134,14 @@ public:
     const int width = canvas()->width() - 1;
     const int height = canvas()->height() - 1;
     // Borders
-    DrawLine(canvas(), 0, 0,      width, 0,      Color(255, 0, 0));
+    DrawLine(canvas(), 0, 0, width, 0, Color(255, 0, 0));
     DrawLine(canvas(), 0, height, width, height, Color(255, 255, 0));
-    DrawLine(canvas(), 0, 0,      0,     height, Color(0, 0, 255));
-    DrawLine(canvas(), width, 0,  width, height, Color(0, 255, 0));
+    DrawLine(canvas(), 0, 0, 0, height, Color(0, 0, 255));
+    DrawLine(canvas(), width, 0, width, height, Color(0, 255, 0));
 
     // Diagonals.
-    DrawLine(canvas(), 0, 0,        width, height, Color(255, 255, 255));
-    DrawLine(canvas(), 0, height, width, 0,        Color(255,   0, 255));
+    DrawLine(canvas(), 0, 0, width, height, Color(255, 255, 255));
+    DrawLine(canvas(), 0, height, width, 0, Color(255, 0, 255));
   }
 };
 
@@ -155,10 +160,18 @@ public:
         for (int x = 0; x < width; ++x) {
           int c = sub_blocks * (y / y_step) + x / x_step;
           switch (count % 4) {
-          case 0: canvas()->SetPixel(x, y, c, c, c); break;
-          case 1: canvas()->SetPixel(x, y, c, 0, 0); break;
-          case 2: canvas()->SetPixel(x, y, 0, c, 0); break;
-          case 3: canvas()->SetPixel(x, y, 0, 0, c); break;
+          case 0:
+            canvas()->SetPixel(x, y, c, c, c);
+            break;
+          case 1:
+            canvas()->SetPixel(x, y, c, 0, 0);
+            break;
+          case 2:
+            canvas()->SetPixel(x, y, 0, c, 0);
+            break;
+          case 3:
+            canvas()->SetPixel(x, y, 0, 0, c);
+            break;
           }
         }
       }
@@ -174,8 +187,10 @@ public:
   RotatingBlockGenerator(Canvas *m) : DemoRunner(m) {}
 
   uint8_t scale_col(int val, int lo, int hi) {
-    if (val < lo) return 0;
-    if (val > hi) return 255;
+    if (val < lo)
+      return 0;
+    if (val > hi)
+      return 255;
     return 255 * (val - lo) / (hi - lo);
   }
 
@@ -204,10 +219,9 @@ public:
       for (int x = min_rotate; x < max_rotate; ++x) {
         for (int y = min_rotate; y < max_rotate; ++y) {
           float rot_x, rot_y;
-          Rotate(x - cent_x, y - cent_x,
-                 deg_to_rad * rotation, &rot_x, &rot_y);
-          if (x >= min_display && x < max_display &&
-              y >= min_display && y < max_display) { // within display square
+          Rotate(x - cent_x, y - cent_x, deg_to_rad * rotation, &rot_x, &rot_y);
+          if (x >= min_display && x < max_display && y >= min_display &&
+              y < max_display) { // within display square
             canvas()->SetPixel(rot_x + cent_x, rot_y + cent_y,
                                scale_col(x, min_display, max_display),
                                255 - scale_col(y, min_display, max_display),
@@ -222,8 +236,7 @@ public:
   }
 
 private:
-  void Rotate(int x, int y, float angle,
-              float *new_x, float *new_y) {
+  void Rotate(int x, int y, float angle, float *new_x, float *new_y) {
     *new_x = x * cosf(angle) - y * sinf(angle);
     *new_y = x * sinf(angle) + y * cosf(angle);
   }
@@ -234,10 +247,8 @@ public:
   // Scroll image with "scroll_jumps" pixels every "scroll_ms" milliseconds.
   // If "scroll_ms" is negative, don't do any scrolling.
   ImageScroller(RGBMatrix *m, int scroll_jumps, int scroll_ms = 30)
-    : DemoRunner(m), scroll_jumps_(scroll_jumps),
-      scroll_ms_(scroll_ms),
-      horizontal_position_(0),
-      matrix_(m) {
+      : DemoRunner(m), scroll_jumps_(scroll_jumps), scroll_ms_(scroll_ms),
+        horizontal_position_(0), matrix_(m) {
     offscreen_ = matrix_->CreateFrameCanvas();
   }
 
@@ -252,11 +263,16 @@ public:
       fprintf(stderr, "File \"%s\" doesn't exist\n", filename);
       return false;
     }
-    if (f == NULL) return false;
+    if (f == NULL)
+      return false;
     char header_buf[256];
     const char *line = ReadLine(f, header_buf, sizeof(header_buf));
-#define EXIT_WITH_MSG(m) { fprintf(stderr, "%s: %s |%s", filename, m, line); \
-      fclose(f); return false; }
+#define EXIT_WITH_MSG(m)                                                       \
+  {                                                                            \
+    fprintf(stderr, "%s: %s |%s", filename, m, line);                          \
+    fclose(f);                                                                 \
+    return false;                                                              \
+  }
     if (sscanf(line, "P6 ") == EOF)
       EXIT_WITH_MSG("Can only handle P6 as PPM type.");
     line = ReadLine(f, header_buf, sizeof(header_buf));
@@ -268,19 +284,19 @@ public:
     if (!line || sscanf(line, "%d ", &value) != 1 || value != 255)
       EXIT_WITH_MSG("Only 255 for maxval allowed.");
     const size_t pixel_count = new_width * new_height;
-    Pixel *new_image = new Pixel [ pixel_count ];
-    assert(sizeof(Pixel) == 3);   // we make that assumption.
+    Pixel *new_image = new Pixel[pixel_count];
+    assert(sizeof(Pixel) == 3); // we make that assumption.
     if (fread(new_image, sizeof(Pixel), pixel_count, f) != pixel_count) {
       line = "";
       EXIT_WITH_MSG("Not enough pixels read.");
     }
 #undef EXIT_WITH_MSG
     fclose(f);
-    fprintf(stderr, "Read image '%s' with %dx%d\n", filename,
-            new_width, new_height);
+    fprintf(stderr, "Read image '%s' with %dx%d\n", filename, new_width,
+            new_height);
     horizontal_position_ = 0;
     MutexLock l(&mutex_new_image_);
-    new_image_.Delete();  // in case we reload faster than is picked up
+    new_image_.Delete(); // in case we reload faster than is picked up
     new_image_.image = new_image;
     new_image_.width = new_width;
     new_image_.height = new_height;
@@ -306,13 +322,14 @@ public:
       for (int x = 0; x < screen_width; ++x) {
         for (int y = 0; y < screen_height; ++y) {
           const Pixel &p = current_image_.getPixel(
-            (horizontal_position_ + x) % current_image_.width, y);
+              (horizontal_position_ + x) % current_image_.width, y);
           offscreen_->SetPixel(x, y, p.red, p.green, p.blue);
         }
       }
       offscreen_ = matrix_->SwapOnVSync(offscreen_);
       horizontal_position_ += scroll_jumps_;
-      if (horizontal_position_ < 0) horizontal_position_ = current_image_.width;
+      if (horizontal_position_ < 0)
+        horizontal_position_ = current_image_.width;
       if (scroll_ms_ <= 0) {
         // No scrolling. We don't need the image anymore.
         current_image_.Delete();
@@ -324,7 +341,7 @@ public:
 
 private:
   struct Pixel {
-    Pixel() : red(0), green(0), blue(0){}
+    Pixel() : red(0), green(0), blue(0) {}
     uint8_t red;
     uint8_t green;
     uint8_t blue;
@@ -333,12 +350,20 @@ private:
   struct Image {
     Image() : width(-1), height(-1), image(NULL) {}
     ~Image() { Delete(); }
-    void Delete() { delete [] image; Reset(); }
-    void Reset() { image = NULL; width = -1; height = -1; }
+    void Delete() {
+      delete[] image;
+      Reset();
+    }
+    void Reset() {
+      image = NULL;
+      width = -1;
+      height = -1;
+    }
     inline bool IsValid() { return image && height > 0 && width > 0; }
     const Pixel &getPixel(int x, int y) {
       static Pixel black;
-      if (x < 0 || x >= width || y < 0 || y >= height) return black;
+      if (x < 0 || x >= width || y < 0 || y >= height)
+        return black;
       return image[x + width * y];
     }
 
@@ -368,58 +393,56 @@ private:
 
   int32_t horizontal_position_;
 
-  RGBMatrix* matrix_;
-  FrameCanvas* offscreen_;
+  RGBMatrix *matrix_;
+  FrameCanvas *offscreen_;
 };
-
 
 // Abelian sandpile
 // Contributed by: Vliedel
 class Sandpile : public DemoRunner {
 public:
-  Sandpile(Canvas *m, int delay_ms=50)
-    : DemoRunner(m), delay_ms_(delay_ms) {
-    width_ = canvas()->width() - 1; // We need an odd width
+  Sandpile(Canvas *m, int delay_ms = 50) : DemoRunner(m), delay_ms_(delay_ms) {
+    width_ = canvas()->width() - 1;   // We need an odd width
     height_ = canvas()->height() - 1; // We need an odd height
 
     // Allocate memory
-    values_ = new int*[width_];
-    for (int x=0; x<width_; ++x) {
+    values_ = new int *[width_];
+    for (int x = 0; x < width_; ++x) {
       values_[x] = new int[height_];
     }
-    newValues_ = new int*[width_];
-    for (int x=0; x<width_; ++x) {
+    newValues_ = new int *[width_];
+    for (int x = 0; x < width_; ++x) {
       newValues_[x] = new int[height_];
     }
 
     // Init values
     srand(time(NULL));
-    for (int x=0; x<width_; ++x) {
-      for (int y=0; y<height_; ++y) {
+    for (int x = 0; x < width_; ++x) {
+      for (int y = 0; y < height_; ++y) {
         values_[x][y] = 0;
       }
     }
   }
 
   ~Sandpile() {
-    for (int x=0; x<width_; ++x) {
-      delete [] values_[x];
+    for (int x = 0; x < width_; ++x) {
+      delete[] values_[x];
     }
-    delete [] values_;
-    for (int x=0; x<width_; ++x) {
-      delete [] newValues_[x];
+    delete[] values_;
+    for (int x = 0; x < width_; ++x) {
+      delete[] newValues_[x];
     }
-    delete [] newValues_;
+    delete[] newValues_;
   }
 
   void Run() override {
     while (!interrupt_received) {
       // Drop a sand grain in the centre
-      values_[width_/2][height_/2]++;
+      values_[width_ / 2][height_ / 2]++;
       updateValues();
 
-      for (int x=0; x<width_; ++x) {
-        for (int y=0; y<height_; ++y) {
+      for (int x = 0; x < width_; ++x) {
+        for (int y = 0; y < height_; ++y) {
           switch (values_[x][y]) {
           case 0:
             canvas()->SetPixel(x, y, 0, 0, 0);
@@ -445,32 +468,32 @@ public:
 private:
   void updateValues() {
     // Copy values to newValues
-    for (int x=0; x<width_; ++x) {
-      for (int y=0; y<height_; ++y) {
+    for (int x = 0; x < width_; ++x) {
+      for (int y = 0; y < height_; ++y) {
         newValues_[x][y] = values_[x][y];
       }
     }
 
     // Update newValues based on values
-    for (int x=0; x<width_; ++x) {
-      for (int y=0; y<height_; ++y) {
+    for (int x = 0; x < width_; ++x) {
+      for (int y = 0; y < height_; ++y) {
         if (values_[x][y] > 3) {
           // Collapse
-          if (x>0)
-            newValues_[x-1][y]++;
-          if (x<width_-1)
-            newValues_[x+1][y]++;
-          if (y>0)
-            newValues_[x][y-1]++;
-          if (y<height_-1)
-            newValues_[x][y+1]++;
+          if (x > 0)
+            newValues_[x - 1][y]++;
+          if (x < width_ - 1)
+            newValues_[x + 1][y]++;
+          if (y > 0)
+            newValues_[x][y - 1]++;
+          if (y < height_ - 1)
+            newValues_[x][y + 1]++;
           newValues_[x][y] -= 4;
         }
       }
     }
     // Copy newValues to values
-    for (int x=0; x<width_; ++x) {
-      for (int y=0; y<height_; ++y) {
+    for (int x = 0; x < width_; ++x) {
+      for (int y = 0; y < height_; ++y) {
         values_[x][y] = newValues_[x][y];
       }
     }
@@ -478,44 +501,43 @@ private:
 
   int width_;
   int height_;
-  int** values_;
-  int** newValues_;
+  int **values_;
+  int **newValues_;
   int delay_ms_;
 };
-
 
 // Conway's game of life
 // Contributed by: Vliedel
 class GameLife : public DemoRunner {
 public:
-  GameLife(Canvas *m, int delay_ms=500, bool torus=true)
-    : DemoRunner(m), delay_ms_(delay_ms), torus_(torus) {
+  GameLife(Canvas *m, int delay_ms = 500, bool torus = true)
+      : DemoRunner(m), delay_ms_(delay_ms), torus_(torus) {
     width_ = canvas()->width();
     height_ = canvas()->height();
 
     // Allocate memory
-    values_ = new int*[width_];
-    for (int x=0; x<width_; ++x) {
+    values_ = new int *[width_];
+    for (int x = 0; x < width_; ++x) {
       values_[x] = new int[height_];
     }
-    newValues_ = new int*[width_];
-    for (int x=0; x<width_; ++x) {
+    newValues_ = new int *[width_];
+    for (int x = 0; x < width_; ++x) {
       newValues_[x] = new int[height_];
     }
 
     // Init values randomly
     srand(time(NULL));
-    for (int x=0; x<width_; ++x) {
-      for (int y=0; y<height_; ++y) {
-        values_[x][y]=rand()%2;
+    for (int x = 0; x < width_; ++x) {
+      for (int y = 0; y < height_; ++y) {
+        values_[x][y] = rand() % 2;
       }
     }
-    r_ = rand()%255;
-    g_ = rand()%255;
-    b_ = rand()%255;
+    r_ = rand() % 255;
+    g_ = rand() % 255;
+    b_ = rand() % 255;
 
-    if (r_<150 && g_<150 && b_<150) {
-      int c = rand()%3;
+    if (r_ < 150 && g_ < 150 && b_ < 150) {
+      int c = rand() % 3;
       switch (c) {
       case 0:
         r_ = 200;
@@ -531,14 +553,14 @@ public:
   }
 
   ~GameLife() {
-    for (int x=0; x<width_; ++x) {
-      delete [] values_[x];
+    for (int x = 0; x < width_; ++x) {
+      delete[] values_[x];
     }
-    delete [] values_;
-    for (int x=0; x<width_; ++x) {
-      delete [] newValues_[x];
+    delete[] values_;
+    for (int x = 0; x < width_; ++x) {
+      delete[] newValues_[x];
     }
-    delete [] newValues_;
+    delete[] newValues_;
   }
 
   void Run() override {
@@ -546,8 +568,8 @@ public:
 
       updateValues();
 
-      for (int x=0; x<width_; ++x) {
-        for (int y=0; y<height_; ++y) {
+      for (int x = 0; x < width_; ++x) {
+        for (int y = 0; y < height_; ++y) {
           if (values_[x][y])
             canvas()->SetPixel(x, y, r_, g_, b_);
           else
@@ -560,59 +582,57 @@ public:
 
 private:
   int numAliveNeighbours(int x, int y) {
-    int num=0;
+    int num = 0;
     if (torus_) {
       // Edges are connected (torus)
-      num += values_[(x-1+width_)%width_][(y-1+height_)%height_];
-      num += values_[(x-1+width_)%width_][y                    ];
-      num += values_[(x-1+width_)%width_][(y+1        )%height_];
-      num += values_[(x+1       )%width_][(y-1+height_)%height_];
-      num += values_[(x+1       )%width_][y                    ];
-      num += values_[(x+1       )%width_][(y+1        )%height_];
-      num += values_[x                  ][(y-1+height_)%height_];
-      num += values_[x                  ][(y+1        )%height_];
-    }
-    else {
+      num += values_[(x - 1 + width_) % width_][(y - 1 + height_) % height_];
+      num += values_[(x - 1 + width_) % width_][y];
+      num += values_[(x - 1 + width_) % width_][(y + 1) % height_];
+      num += values_[(x + 1) % width_][(y - 1 + height_) % height_];
+      num += values_[(x + 1) % width_][y];
+      num += values_[(x + 1) % width_][(y + 1) % height_];
+      num += values_[x][(y - 1 + height_) % height_];
+      num += values_[x][(y + 1) % height_];
+    } else {
       // Edges are not connected (no torus)
-      if (x>0) {
-        if (y>0)
-          num += values_[x-1][y-1];
-        if (y<height_-1)
-          num += values_[x-1][y+1];
-        num += values_[x-1][y];
+      if (x > 0) {
+        if (y > 0)
+          num += values_[x - 1][y - 1];
+        if (y < height_ - 1)
+          num += values_[x - 1][y + 1];
+        num += values_[x - 1][y];
       }
-      if (x<width_-1) {
-        if (y>0)
-          num += values_[x+1][y-1];
-        if (y<31)
-          num += values_[x+1][y+1];
-        num += values_[x+1][y];
+      if (x < width_ - 1) {
+        if (y > 0)
+          num += values_[x + 1][y - 1];
+        if (y < 31)
+          num += values_[x + 1][y + 1];
+        num += values_[x + 1][y];
       }
-      if (y>0)
-        num += values_[x][y-1];
-      if (y<height_-1)
-        num += values_[x][y+1];
+      if (y > 0)
+        num += values_[x][y - 1];
+      if (y < height_ - 1)
+        num += values_[x][y + 1];
     }
     return num;
   }
 
   void updateValues() {
     // Copy values to newValues
-    for (int x=0; x<width_; ++x) {
-      for (int y=0; y<height_; ++y) {
+    for (int x = 0; x < width_; ++x) {
+      for (int y = 0; y < height_; ++y) {
         newValues_[x][y] = values_[x][y];
       }
     }
     // update newValues based on values
-    for (int x=0; x<width_; ++x) {
-      for (int y=0; y<height_; ++y) {
-        int num = numAliveNeighbours(x,y);
+    for (int x = 0; x < width_; ++x) {
+      for (int y = 0; y < height_; ++y) {
+        int num = numAliveNeighbours(x, y);
         if (values_[x][y]) {
           // cell is alive
           if (num < 2 || num > 3)
             newValues_[x][y] = 0;
-        }
-        else {
+        } else {
           // cell is dead
           if (num == 3)
             newValues_[x][y] = 1;
@@ -620,15 +640,15 @@ private:
       }
     }
     // copy newValues to values
-    for (int x=0; x<width_; ++x) {
-      for (int y=0; y<height_; ++y) {
+    for (int x = 0; x < width_; ++x) {
+      for (int y = 0; y < height_; ++y) {
         values_[x][y] = newValues_[x][y];
       }
     }
   }
 
-  int** values_;
-  int** newValues_;
+  int **values_;
+  int **newValues_;
   int delay_ms_;
   int r_;
   int g_;
@@ -642,30 +662,29 @@ private:
 // Contributed by: Vliedel
 class Ant : public DemoRunner {
 public:
-  Ant(Canvas *m, int delay_ms=500)
-    : DemoRunner(m), delay_ms_(delay_ms) {
+  Ant(Canvas *m, int delay_ms = 500) : DemoRunner(m), delay_ms_(delay_ms) {
     numColors_ = 4;
     width_ = canvas()->width();
     height_ = canvas()->height();
-    values_ = new int*[width_];
-    for (int x=0; x<width_; ++x) {
+    values_ = new int *[width_];
+    for (int x = 0; x < width_; ++x) {
       values_[x] = new int[height_];
     }
   }
 
   ~Ant() {
-    for (int x=0; x<width_; ++x) {
-      delete [] values_[x];
+    for (int x = 0; x < width_; ++x) {
+      delete[] values_[x];
     }
-    delete [] values_;
+    delete[] values_;
   }
 
   void Run() override {
-    antX_ = width_/2;
-    antY_ = height_/2-3;
+    antX_ = width_ / 2;
+    antY_ = height_ / 2 - 3;
     antDir_ = 0;
-    for (int x=0; x<width_; ++x) {
-      for (int y=0; y<height_; ++y) {
+    for (int x = 0; x < width_; ++x) {
+      for (int y = 0; y < height_; ++y) {
         values_[x][y] = 0;
         updatePixel(x, y);
       }
@@ -676,11 +695,11 @@ public:
       switch (values_[antX_][antY_]) {
       case 0:
       case 1:
-        antDir_ = (antDir_+1+4) % 4;
+        antDir_ = (antDir_ + 1 + 4) % 4;
         break;
       case 2:
       case 3:
-        antDir_ = (antDir_-1+4) % 4;
+        antDir_ = (antDir_ - 1 + 4) % 4;
         break;
       }
 
@@ -730,7 +749,7 @@ private:
   }
 
   int numColors_;
-  int** values_;
+  int **values_;
   int antX_;
   int antY_;
   int antDir_; // 0 right, 1 up, 2 left, 3 down
@@ -739,57 +758,53 @@ private:
   int height_;
 };
 
-
-
 // Imitation of volume bars
 // Purely random height doesn't look realistic
 // Contributed by: Vliedel
 class VolumeBars : public DemoRunner {
 public:
-  VolumeBars(Canvas *m, int delay_ms=50, int numBars=8)
-    : DemoRunner(m), delay_ms_(delay_ms),
-      numBars_(numBars), t_(0) {
-  }
+  VolumeBars(Canvas *m, int delay_ms = 50, int numBars = 8)
+      : DemoRunner(m), delay_ms_(delay_ms), numBars_(numBars), t_(0) {}
 
   ~VolumeBars() {
-    delete [] barHeights_;
-    delete [] barFreqs_;
-    delete [] barMeans_;
+    delete[] barHeights_;
+    delete[] barFreqs_;
+    delete[] barMeans_;
   }
 
   void Run() override {
     const int width = canvas()->width();
     height_ = canvas()->height();
-    barWidth_ = width/numBars_;
+    barWidth_ = width / numBars_;
     barHeights_ = new int[numBars_];
     barMeans_ = new int[numBars_];
     barFreqs_ = new int[numBars_];
-    heightGreen_  = height_*4/12;
-    heightYellow_ = height_*8/12;
-    heightOrange_ = height_*10/12;
-    heightRed_    = height_*12/12;
+    heightGreen_ = height_ * 4 / 12;
+    heightYellow_ = height_ * 8 / 12;
+    heightOrange_ = height_ * 10 / 12;
+    heightRed_ = height_ * 12 / 12;
 
     // Array of possible bar means
     int numMeans = 10;
-    int means[10] = {1,2,3,4,5,6,7,8,16,32};
-    for (int i=0; i<numMeans; ++i) {
-      means[i] = height_ - means[i]*height_/8;
+    int means[10] = {1, 2, 3, 4, 5, 6, 7, 8, 16, 32};
+    for (int i = 0; i < numMeans; ++i) {
+      means[i] = height_ - means[i] * height_ / 8;
     }
     // Initialize bar means randomly
     srand(time(NULL));
-    for (int i=0; i<numBars_; ++i) {
-      barMeans_[i] = rand()%numMeans;
-      barFreqs_[i] = 1<<(rand()%3);
+    for (int i = 0; i < numBars_; ++i) {
+      barMeans_[i] = rand() % numMeans;
+      barFreqs_[i] = 1 << (rand() % 3);
     }
 
     // Start the loop
     while (!interrupt_received) {
       if (t_ % 8 == 0) {
         // Change the means
-        for (int i=0; i<numBars_; ++i) {
-          barMeans_[i] += rand()%3 - 1;
+        for (int i = 0; i < numBars_; ++i) {
+          barMeans_[i] += rand() % 3 - 1;
           if (barMeans_[i] >= numMeans)
-            barMeans_[i] = numMeans-1;
+            barMeans_[i] = numMeans - 1;
           if (barMeans_[i] < 0)
             barMeans_[i] = 0;
         }
@@ -797,31 +812,29 @@ public:
 
       // Update bar heights
       t_++;
-      for (int i=0; i<numBars_; ++i) {
-        barHeights_[i] = (height_ - means[barMeans_[i]])
-          * sin(0.1*t_*barFreqs_[i]) + means[barMeans_[i]];
-        if (barHeights_[i] < height_/8)
-          barHeights_[i] = rand() % (height_/8) + 1;
+      for (int i = 0; i < numBars_; ++i) {
+        barHeights_[i] =
+            (height_ - means[barMeans_[i]]) * sin(0.1 * t_ * barFreqs_[i]) +
+            means[barMeans_[i]];
+        if (barHeights_[i] < height_ / 8)
+          barHeights_[i] = rand() % (height_ / 8) + 1;
       }
 
-      for (int i=0; i<numBars_; ++i) {
+      for (int i = 0; i < numBars_; ++i) {
         int y;
-        for (y=0; y<barHeights_[i]; ++y) {
-          if (y<heightGreen_) {
+        for (y = 0; y < barHeights_[i]; ++y) {
+          if (y < heightGreen_) {
             drawBarRow(i, y, 0, 200, 0);
-          }
-          else if (y<heightYellow_) {
+          } else if (y < heightYellow_) {
             drawBarRow(i, y, 150, 150, 0);
-          }
-          else if (y<heightOrange_) {
+          } else if (y < heightOrange_) {
             drawBarRow(i, y, 250, 100, 0);
-          }
-          else {
+          } else {
             drawBarRow(i, y, 200, 0, 0);
           }
         }
         // Anything above the bar should be black
-        for (; y<height_; ++y) {
+        for (; y < height_; ++y) {
           drawBarRow(i, y, 0, 0, 0);
         }
       }
@@ -831,22 +844,22 @@ public:
 
 private:
   void drawBarRow(int bar, int y, uint8_t r, uint8_t g, uint8_t b) {
-    for (int x=bar*barWidth_; x<(bar+1)*barWidth_; ++x) {
-      canvas()->SetPixel(x, height_-1-y, r, g, b);
+    for (int x = bar * barWidth_; x < (bar + 1) * barWidth_; ++x) {
+      canvas()->SetPixel(x, height_ - 1 - y, r, g, b);
     }
   }
 
   int delay_ms_;
   int numBars_;
-  int* barHeights_;
+  int *barHeights_;
   int barWidth_;
   int height_;
   int heightGreen_;
   int heightYellow_;
   int heightOrange_;
   int heightRed_;
-  int* barFreqs_;
-  int* barMeans_;
+  int *barFreqs_;
+  int *barMeans_;
   int t_;
 };
 
@@ -856,7 +869,7 @@ private:
 class GeneticColors : public DemoRunner {
 public:
   GeneticColors(Canvas *m, int delay_ms = 200)
-    : DemoRunner(m), delay_ms_(delay_ms) {
+      : DemoRunner(m), delay_ms_(delay_ms) {
     width_ = canvas()->width();
     height_ = canvas()->height();
     popSize_ = width_ * height_;
@@ -868,11 +881,11 @@ public:
   }
 
   ~GeneticColors() {
-    delete [] children_;
-    delete [] parents_;
+    delete[] children_;
+    delete[] parents_;
   }
 
-  static int rnd (int i) { return rand() % i; }
+  static int rnd(int i) { return rand() % i; }
 
   void Run() override {
     // Set a random target_
@@ -887,10 +900,10 @@ public:
       swap();
       sort();
       mate();
-      std::random_shuffle (children_, children_ + popSize_, rnd);
+      std::random_shuffle(children_, children_ + popSize_, rnd);
 
       // Draw citizens to canvas
-      for(int i=0; i < popSize_; i++) {
+      for (int i = 0; i < popSize_; i++) {
         int c = children_[i].dna;
         int x = i % width_;
         int y = (int)(i / width_);
@@ -898,7 +911,7 @@ public:
       }
 
       // When we reach the 85% fitness threshold...
-      if(is85PercentFit()) {
+      if (is85PercentFit()) {
         // ...set a new random target_
         target_ = rand() & 0xFFFFFF;
 
@@ -914,11 +927,9 @@ public:
 private:
   /// citizen will hold dna information, a 24-bit color value.
   struct citizen {
-    citizen() { }
+    citizen() {}
 
-    citizen(int chrom)
-      : dna(chrom) {
-    }
+    citizen(int chrom) : dna(chrom) {}
 
     int dna;
   };
@@ -926,10 +937,9 @@ private:
   /// for sorting by fitness
   class comparer {
   public:
-    comparer(int t)
-      : target_(t) { }
+    comparer(int t) : target_(t) {}
 
-    inline bool operator() (const citizen& c1, const citizen& c2) {
+    inline bool operator()(const citizen &c1, const citizen &c2) {
       return (calcFitness(c1.dna, target_) < calcFitness(c2.dna, target_));
     }
 
@@ -940,7 +950,7 @@ private:
   static int R(const int cit) { return at(cit, 16); }
   static int G(const int cit) { return at(cit, 8); }
   static int B(const int cit) { return at(cit, 0); }
-  static int at(const int v, const  int offset) { return (v >> offset) & 0xFF; }
+  static int at(const int v, const int offset) { return (v >> offset) & 0xFF; }
 
   /// fitness here is how "similar" the color is to the target
   static int calcFitness(const int value, const int target) {
@@ -956,9 +966,7 @@ private:
   /// this is to establish an elite population of greatest fitness
   /// the most fit members and some others are allowed to reproduce
   /// to the next generation
-  void sort() {
-    std::sort(parents_, parents_ + popSize_, comparer(target_));
-  }
+  void sort() { std::sort(parents_, parents_ + popSize_, comparer(target_)); }
 
   /// let the elites continue to the next generation children
   /// randomly select 2 parents of (near)elite fitness and determine
@@ -974,15 +982,15 @@ private:
     }
 
     for (int i = numElite; i < popSize_; ++i) {
-      //select the parents randomly
+      // select the parents randomly
       const float sexuallyActive = 1.0 - eliteRate;
       const int p1 = rand() % (int)(popSize_ * sexuallyActive);
       const int p2 = rand() % (int)(popSize_ * sexuallyActive);
       const unsigned matingMask = (~0u) << (rand() % bitsPerPixel);
 
       // Make a baby
-      unsigned baby = (parents_[p1].dna & matingMask)
-        | (parents_[p2].dna & ~matingMask);
+      unsigned baby =
+          (parents_[p1].dna & matingMask) | (parents_[p2].dna & ~matingMask);
       children_[i].dna = baby;
 
       // Mutate randomly based on mutation rate
@@ -996,12 +1004,12 @@ private:
   /// children become parents,
   /// and they make children...
   void swap() {
-    citizen* temp = parents_;
+    citizen *temp = parents_;
     parents_ = children_;
     children_ = temp;
   }
 
-  void mutate(citizen& c) {
+  void mutate(citizen &c) {
     // Flip a random bit
     c.dna ^= 1 << (rand() % bitsPerPixel);
   }
@@ -1022,36 +1030,35 @@ private:
   int width_, height_;
   int delay_ms_;
   int target_;
-  citizen* children_;
-  citizen* parents_;
+  citizen *children_;
+  citizen *parents_;
 };
 
 static int usage(const char *progname) {
   fprintf(stderr, "usage: %s <options> -D <demo-nr> [optional parameter]\n",
           progname);
   fprintf(stderr, "Options:\n");
-  fprintf(stderr,
-          "\t-D <demo-nr>              : Always needs to be set\n"
-          );
-
+  fprintf(stderr, "\t-D <demo-nr>              : Always needs to be set\n");
 
   rgb_matrix::PrintMatrixFlags(stderr);
 
   fprintf(stderr, "Demos, choosen with -D\n");
   fprintf(stderr, "\t0  - some rotating square\n"
-          "\t1  - forward scrolling an image (-m <scroll-ms>)\n"
-          "\t2  - backward scrolling an image (-m <scroll-ms>)\n"
-          "\t3  - test image: a square\n"
-          "\t4  - Pulsing color\n"
-          "\t5  - Grayscale Block\n"
-          "\t6  - Abelian sandpile model (-m <time-step-ms>)\n"
-          "\t7  - Conway's game of life (-m <time-step-ms>)\n"
-          "\t8  - Langton's ant (-m <time-step-ms>)\n"
-          "\t9  - Volume bars (-m <time-step-ms>)\n"
-          "\t10 - Evolution of color (-m <time-step-ms>)\n"
-          "\t11 - Brightness pulse generator\n");
-  fprintf(stderr, "Example:\n\t%s -D 1 runtext.ppm\n"
-          "Scrolls the runtext until Ctrl-C is pressed\n", progname);
+                  "\t1  - forward scrolling an image (-m <scroll-ms>)\n"
+                  "\t2  - backward scrolling an image (-m <scroll-ms>)\n"
+                  "\t3  - test image: a square\n"
+                  "\t4  - Pulsing color\n"
+                  "\t5  - Grayscale Block\n"
+                  "\t6  - Abelian sandpile model (-m <time-step-ms>)\n"
+                  "\t7  - Conway's game of life (-m <time-step-ms>)\n"
+                  "\t8  - Langton's ant (-m <time-step-ms>)\n"
+                  "\t9  - Volume bars (-m <time-step-ms>)\n"
+                  "\t10 - Evolution of color (-m <time-step-ms>)\n"
+                  "\t11 - Brightness pulse generator\n");
+  fprintf(stderr,
+          "Example:\n\t%s -D 1 runtext.ppm\n"
+          "Scrolls the runtext until Ctrl-C is pressed\n",
+          progname);
   return 1;
 }
 
@@ -1103,8 +1110,8 @@ int main(int argc, char *argv[]) {
   if (matrix == NULL)
     return 1;
 
-  printf("Size: %dx%d. Hardware gpio mapping: %s\n",
-         matrix->width(), matrix->height(), matrix_options.hardware_mapping);
+  printf("Size: %dx%d. Hardware gpio mapping: %s\n", matrix->width(),
+         matrix->height(), matrix_options.hardware_mapping);
 
   Canvas *canvas = matrix;
 
@@ -1119,9 +1126,8 @@ int main(int argc, char *argv[]) {
   case 1:
   case 2:
     if (demo_parameter) {
-      ImageScroller *scroller = new ImageScroller(matrix,
-                                                  demo == 1 ? 1 : -1,
-                                                  scroll_ms);
+      ImageScroller *scroller =
+          new ImageScroller(matrix, demo == 1 ? 1 : -1, scroll_ms);
       if (!scroller->LoadPPM(demo_parameter))
         return 1;
       demo_runner = scroller;
@@ -1156,7 +1162,7 @@ int main(int argc, char *argv[]) {
     break;
 
   case 9:
-    demo_runner = new VolumeBars(canvas, scroll_ms, canvas->width()/2);
+    demo_runner = new VolumeBars(canvas, scroll_ms, canvas->width() / 2);
     break;
 
   case 10:

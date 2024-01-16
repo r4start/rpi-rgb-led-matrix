@@ -15,13 +15,11 @@
 
 #define FPS 60
 
-using rgb_matrix::RGBMatrix;
 using rgb_matrix::Canvas;
+using rgb_matrix::RGBMatrix;
 
 volatile bool interrupt_received = false;
-static void InterruptHandler(int signo) {
-  interrupt_received = true;
-}
+static void InterruptHandler(int signo) { interrupt_received = true; }
 
 int main(int argc, char *argv[]) {
   RGBMatrix::Options defaults;
@@ -49,27 +47,29 @@ int main(int argc, char *argv[]) {
 
     ssize_t nread;
     ssize_t total_nread = 0;
-    while ((nread = read(STDIN_FILENO, &buf[total_nread], frame_size - total_nread)) > 0) {
+    while ((nread = read(STDIN_FILENO, &buf[total_nread],
+                         frame_size - total_nread)) > 0) {
       if (interrupt_received) {
         return 1;
       }
       total_nread += nread;
     }
-    if (total_nread < frame_size){
+    if (total_nread < frame_size) {
       break;
     }
 
     for (int y = 0; y < canvas->height(); y++) {
       for (int x = 0; x < canvas->width(); x++) {
         uint8_t *p = &buf[(y * canvas->width() + x) * 3];
-        uint8_t r = *(p+0), g = *(p+1), b = *(p+2);
+        uint8_t r = *(p + 0), g = *(p + 1), b = *(p + 2);
         canvas->SetPixel(x, y, r, g, b);
       }
     }
 
     struct timespec end;
     timespec_get(&end, TIME_UTC);
-    long tudiff = (end.tv_nsec / 1000 + end.tv_sec * 1000000) - (start.tv_nsec / 1000 + start.tv_sec * 1000000);
+    long tudiff = (end.tv_nsec / 1000 + end.tv_sec * 1000000) -
+                  (start.tv_nsec / 1000 + start.tv_sec * 1000000);
     if (tudiff < 1000000l / FPS) {
       usleep(1000000l / FPS - tudiff);
     }

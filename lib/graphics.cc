@@ -16,33 +16,34 @@
 #include "graphics.h"
 #include "utf8-internal.h"
 
-#include <stdlib.h>
-#include <functional>
 #include <algorithm>
+#include <functional>
+#include <stdlib.h>
 
 namespace rgb_matrix {
 bool SetImage(Canvas *c, int canvas_offset_x, int canvas_offset_y,
-              const uint8_t *buffer, size_t size,
-              const int width, const int height,
-              bool is_bgr) {
-  if (3 * width * height != (int)size)   // Sanity check
+              const uint8_t *buffer, size_t size, const int width,
+              const int height, bool is_bgr) {
+  if (3 * width * height != (int)size) // Sanity check
     return false;
 
   int image_display_w = width;
   int image_display_h = height;
 
-  size_t skip_start_row = 0;   // Bytes to skip before each row
+  size_t skip_start_row = 0; // Bytes to skip before each row
   if (canvas_offset_x < 0) {
     skip_start_row = -canvas_offset_x * 3;
     image_display_w += canvas_offset_x;
-    if (image_display_w <= 0) return false;  // Done. outside canvas.
+    if (image_display_w <= 0)
+      return false; // Done. outside canvas.
     canvas_offset_x = 0;
   }
   if (canvas_offset_y < 0) {
     // Skip buffer to the first row we'll be showing
     buffer += 3 * width * -canvas_offset_y;
     image_display_h += canvas_offset_y;
-    if (image_display_h <= 0) return false;  // Done. outside canvas.
+    if (image_display_h <= 0)
+      return false; // Done. outside canvas.
     canvas_offset_y = 0;
   }
   const int w = std::min(c->width(), canvas_offset_x + image_display_w);
@@ -50,8 +51,8 @@ bool SetImage(Canvas *c, int canvas_offset_x, int canvas_offset_y,
 
   // Bytes to skip for wider than canvas image at the end of a row
   const size_t skip_end_row = (canvas_offset_x + image_display_w > w)
-    ? (canvas_offset_x + image_display_w - w) * 3
-    : 0;
+                                  ? (canvas_offset_x + image_display_w - w) * 3
+                                  : 0;
 
   // Let's make this a combined skip per row and ajust where we start.
   const size_t next_row_skip = skip_start_row + skip_end_row;
@@ -77,15 +78,14 @@ bool SetImage(Canvas *c, int canvas_offset_x, int canvas_offset_y,
   return true;
 }
 
-int DrawText(Canvas *c, const Font &font,
-             int x, int y, const Color &color,
+int DrawText(Canvas *c, const Font &font, int x, int y, const Color &color,
              const char *utf8_text) {
   return DrawText(c, font, x, y, color, NULL, utf8_text);
 }
 
-int DrawText(Canvas *c, const Font &font,
-             int x, int y, const Color &color, const Color *background_color,
-             const char *utf8_text, int extra_spacing) {
+int DrawText(Canvas *c, const Font &font, int x, int y, const Color &color,
+             const Color *background_color, const char *utf8_text,
+             int extra_spacing) {
   const int start_x = x;
   while (*utf8_text) {
     const uint32_t cp = utf8_next_codepoint(utf8_text);
@@ -99,9 +99,8 @@ int DrawText(Canvas *c, const Font &font,
 // define this here so that people linking against an old library will still
 // have their code usable. Now: 2017-06-04; can probably be removed in a couple
 // of months.
-int DrawText(Canvas *c, const Font &font,
-             int x, int y, const Color &color, const Color *background_color,
-             const char *utf8_text) {
+int DrawText(Canvas *c, const Font &font, int x, int y, const Color &color,
+             const Color *background_color, const char *utf8_text) {
   return DrawText(c, font, x, y, color, background_color, utf8_text, 0);
 }
 
@@ -131,11 +130,11 @@ void DrawCircle(Canvas *c, int x0, int y0, int radius, const Color &color) {
     c->SetPixel(x + x0, -y + y0, color.r, color.g, color.b);
     c->SetPixel(y + x0, -x + y0, color.r, color.g, color.b);
     y++;
-    if (radiusError<0){
+    if (radiusError < 0) {
       radiusError += 2 * y + 1;
     } else {
       x--;
-      radiusError+= 2 * (y - x + 1);
+      radiusError += 2 * (y - x + 1);
     }
   }
 }
@@ -149,9 +148,9 @@ void DrawLine(Canvas *c, int x0, int y0, int x1, int y1, const Color &color) {
       std::swap(x0, x1);
       std::swap(y0, y1);
     }
-    gradient = (dy << shift) / dx ;
+    gradient = (dy << shift) / dx;
 
-    for (x = x0 , y = 0x8000 + (y0 << shift); x <= x1; ++x, y += gradient) {
+    for (x = x0, y = 0x8000 + (y0 << shift); x <= x1; ++x, y += gradient) {
       c->SetPixel(x, y >> shift, color.r, color.g, color.b);
     }
   } else if (dy != 0) {
@@ -161,7 +160,7 @@ void DrawLine(Canvas *c, int x0, int y0, int x1, int y1, const Color &color) {
       std::swap(y0, y1);
     }
     gradient = (dx << shift) / dy;
-    for (y = y0 , x = 0x8000 + (x0 << shift); y <= y1; ++y, x += gradient) {
+    for (y = y0, x = 0x8000 + (x0 << shift); y <= y1; ++y, x += gradient) {
       c->SetPixel(x >> shift, y, color.r, color.g, color.b);
     }
   } else {
@@ -169,4 +168,4 @@ void DrawLine(Canvas *c, int x0, int y0, int x1, int y1, const Color &color) {
   }
 }
 
-}//namespace
+} // namespace rgb_matrix

@@ -27,11 +27,11 @@
 #ifndef RPI_RGBMATRIX_C_H
 #define RPI_RGBMATRIX_C_H
 
+#include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
-#include <stdbool.h>
 
-#ifdef  __cplusplus
+#ifdef __cplusplus
 extern "C" {
 #endif
 
@@ -115,7 +115,7 @@ struct RGBLedMatrixOptions {
    * row, while row address type 1 is used for panels that only have A/B,
    * typically some 64x64 panels
    */
-  int row_address_type;  /* Corresponding flag: --led-row-addr-type */
+  int row_address_type; /* Corresponding flag: --led-row-addr-type */
 
   /*  Type of multiplexing. 0 = direct, 1 = stripe, 2 = checker (typical 1:8)
    */
@@ -134,24 +134,24 @@ struct RGBLedMatrixOptions {
   /* In case the internal sequence of mapping is not "RGB", this contains the
    * real mapping. Some panels mix up these colors.
    */
-  const char *led_rgb_sequence;     /* Corresponding flag: --led-rgb-sequence */
+  const char *led_rgb_sequence; /* Corresponding flag: --led-rgb-sequence */
 
   /* A string describing a sequence of pixel mappers that should be applied
    * to this matrix. A semicolon-separated list of pixel-mappers with optional
    * parameter.
    */
-  const char *pixel_mapper_config;  /* Corresponding flag: --led-pixel-mapper */
+  const char *pixel_mapper_config; /* Corresponding flag: --led-pixel-mapper */
 
   /*
    * Panel type. Typically just NULL, but certain panels (FM6126) require
    * an initialization sequence
    */
-  const char *panel_type;  /* Corresponding flag: --led-panel-type */
+  const char *panel_type; /* Corresponding flag: --led-panel-type */
 
   /* Limit refresh rate of LED panel. This will help on a loaded system
    * to keep a constant refresh rate. <= 0 for no limit.
    */
-  int limit_refresh_rate_hz;     /* Corresponding flag: --led-limit-refresh */
+  int limit_refresh_rate_hz; /* Corresponding flag: --led-limit-refresh */
 };
 
 /**
@@ -159,7 +159,7 @@ struct RGBLedMatrixOptions {
  * dropping privileges and becoming a daemon.
  */
 struct RGBLedRuntimeOptions {
-  int gpio_slowdown;    // 0 = no slowdown.          Flag: --led-slowdown-gpio
+  int gpio_slowdown; // 0 = no slowdown.          Flag: --led-slowdown-gpio
 
   // ----------
   // If the following options are set to disabled with -1, they are not
@@ -178,11 +178,11 @@ struct RGBLedRuntimeOptions {
   // after the call (which requires that no threads have been started yet).
   // In the other cases (off or on), the choice is already made, so the thread
   // is conveniently already started for you.
-  int daemon;           // -1 disabled. 0=off, 1=on. Flag: --led-daemon
+  int daemon; // -1 disabled. 0=off, 1=on. Flag: --led-daemon
 
   // Drop privileges from 'root' to 'daemon' once the hardware is initialized.
   // This is usually a good idea unless you need to stay on elevated privs.
-  int drop_privileges;  // -1 disabled. 0=off, 1=on. flag: --led-drop-privs
+  int drop_privileges; // -1 disabled. 0=off, 1=on. flag: --led-drop-privs
 
   // By default, the gpio is initialized for you, but if you run on a platform
   // not the Raspberry Pi, this will fail. If you don't need to access GPIO
@@ -236,12 +236,14 @@ struct Color {
  * }
  * ----------------
  */
-struct RGBLedMatrix *led_matrix_create_from_options(
-             struct RGBLedMatrixOptions *options, int *argc, char ***argv);
+struct RGBLedMatrix *
+led_matrix_create_from_options(struct RGBLedMatrixOptions *options, int *argc,
+                               char ***argv);
 
 /* Same, but does not modify the argv array. */
-struct RGBLedMatrix *led_matrix_create_from_options_const_argv(
-             struct RGBLedMatrixOptions *options, int argc, char **argv);
+struct RGBLedMatrix *
+led_matrix_create_from_options_const_argv(struct RGBLedMatrixOptions *options,
+                                          int argc, char **argv);
 
 /**
  * The way to completely initialize your matrix without using command line
@@ -260,16 +262,16 @@ struct RGBLedMatrix *led_matrix_create_from_options_const_argv(
  *   options.rows = 32;            // You can set defaults if you want.
  *   options.chain_length = 1;
  *   rt_options.gpio_slowdown = 4;
- *   struct RGBLedMatrix *matrix = led_matrix_create_from_options_and_rt_options(&options, &rt_options);
- *   if (matrix == NULL) {
- *      return 1;
+ *   struct RGBLedMatrix *matrix =
+ * led_matrix_create_from_options_and_rt_options(&options, &rt_options); if
+ * (matrix == NULL) { return 1;
  *   }
  *   // do additional commandline handling; then use matrix...
  * }
  * ----------------
  */
 struct RGBLedMatrix *led_matrix_create_from_options_and_rt_options(
-  struct RGBLedMatrixOptions *opts, struct RGBLedRuntimeOptions * rt_opts);
+    struct RGBLedMatrixOptions *opts, struct RGBLedRuntimeOptions *rt_opts);
 
 /**
  * Print available LED matrix options.
@@ -295,13 +297,11 @@ void led_matrix_print_flags(FILE *out);
  */
 struct RGBLedMatrix *led_matrix_create(int rows, int chained, int parallel);
 
-
 /**
  * Stop matrix and free memory.
  * Always call before the end of the program to properly reset the hardware
  */
 void led_matrix_delete(struct RGBLedMatrix *matrix);
-
 
 /**
  * Get active canvas from LED matrix for you to draw on.
@@ -310,16 +310,16 @@ void led_matrix_delete(struct RGBLedMatrix *matrix);
 struct LedCanvas *led_matrix_get_canvas(struct RGBLedMatrix *matrix);
 
 /** Return size of canvas. */
-void led_canvas_get_size(const struct LedCanvas *canvas,
-                         int *width, int *height);
+void led_canvas_get_size(const struct LedCanvas *canvas, int *width,
+                         int *height);
 
 /** Set pixel at (x, y) with color (r,g,b). */
-void led_canvas_set_pixel(struct LedCanvas *canvas, int x, int y,
-                          uint8_t r, uint8_t g, uint8_t b);
+void led_canvas_set_pixel(struct LedCanvas *canvas, int x, int y, uint8_t r,
+                          uint8_t g, uint8_t b);
 
 /** Copies pixels to rectangle at (x, y) with size (width, height). */
-void led_canvas_set_pixels(struct LedCanvas *canvas, int x, int y,
-                           int width, int height, struct Color *colors);
+void led_canvas_set_pixels(struct LedCanvas *canvas, int x, int y, int width,
+                           int height, struct Color *colors);
 
 /** Clear screen (black). */
 void led_canvas_clear(struct LedCanvas *canvas);
@@ -333,7 +333,8 @@ void led_canvas_fill(struct LedCanvas *canvas, uint8_t r, uint8_t g, uint8_t b);
  * Create a new canvas to be used with led_matrix_swap_on_vsync()
  * Ownership of returned pointer stays with the matrix, don't free().
  */
-struct LedCanvas *led_matrix_create_offscreen_canvas(struct RGBLedMatrix *matrix);
+struct LedCanvas *
+led_matrix_create_offscreen_canvas(struct RGBLedMatrix *matrix);
 
 /**
  * Swap the given canvas (created with create_offscreen_canvas) with the
@@ -373,8 +374,7 @@ void led_matrix_set_brightness(struct RGBLedMatrix *matrix, uint8_t brightness);
 // of RGB with is_bgr = 0.
 void set_image(struct LedCanvas *c, int canvas_offset_x, int canvas_offset_y,
                const uint8_t *image_buffer, size_t buffer_size_bytes,
-               int image_width, int image_height,
-               char is_bgr);
+               int image_width, int image_height, char is_bgr);
 
 // Load a font given a path to a font file containing a bdf font.
 struct LedFont *load_font(const char *bdf_font_file);
@@ -392,21 +392,21 @@ struct LedFont *create_outline_font(struct LedFont *font);
 void delete_font(struct LedFont *font);
 
 int draw_text(struct LedCanvas *c, struct LedFont *font, int x, int y,
-              uint8_t r, uint8_t g, uint8_t b,
-              const char *utf8_text, int kerning_offset);
+              uint8_t r, uint8_t g, uint8_t b, const char *utf8_text,
+              int kerning_offset);
 
 int vertical_draw_text(struct LedCanvas *c, struct LedFont *font, int x, int y,
-                       uint8_t r, uint8_t g, uint8_t b,
-                       const char *utf8_text, int kerning_offset);
+                       uint8_t r, uint8_t g, uint8_t b, const char *utf8_text,
+                       int kerning_offset);
 
-void draw_circle(struct LedCanvas *c, int x, int y, int radius,
-                 uint8_t r, uint8_t g, uint8_t b);
+void draw_circle(struct LedCanvas *c, int x, int y, int radius, uint8_t r,
+                 uint8_t g, uint8_t b);
 
-void draw_line(struct LedCanvas *c, int x0, int y0, int x1, int y1,
-               uint8_t r, uint8_t g, uint8_t b);
+void draw_line(struct LedCanvas *c, int x0, int y0, int x1, int y1, uint8_t r,
+               uint8_t g, uint8_t b);
 
-#ifdef  __cplusplus
-}  // extern C
+#ifdef __cplusplus
+} // extern C
 #endif
 
 #endif

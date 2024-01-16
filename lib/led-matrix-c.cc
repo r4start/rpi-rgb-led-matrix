@@ -16,50 +16,52 @@
 // C-bridge for led matrix.
 #include "led-matrix-c.h"
 
-#include <string.h>
 #include <stdio.h>
+#include <string.h>
 
-#include "led-matrix.h"
 #include "graphics.h"
+#include "led-matrix.h"
 
 // Make sure C++ is in sync with C
-static_assert(sizeof(rgb_matrix::RGBMatrix::Options) == sizeof(RGBLedMatrixOptions), "C and C++ out of sync");
-static_assert(sizeof(rgb_matrix::RuntimeOptions) == sizeof(RGBLedRuntimeOptions), "C and C++ out of sync");
+static_assert(sizeof(rgb_matrix::RGBMatrix::Options) ==
+                  sizeof(RGBLedMatrixOptions),
+              "C and C++ out of sync");
+static_assert(sizeof(rgb_matrix::RuntimeOptions) ==
+                  sizeof(RGBLedRuntimeOptions),
+              "C and C++ out of sync");
 
 // Our opaque dummy structs to communicate with the c-world
 struct RGBLedMatrix {};
 struct LedCanvas {};
 struct LedFont {};
 
-
 static rgb_matrix::RGBMatrix *to_matrix(struct RGBLedMatrix *matrix) {
-  return reinterpret_cast<rgb_matrix::RGBMatrix*>(matrix);
+  return reinterpret_cast<rgb_matrix::RGBMatrix *>(matrix);
 }
 static struct RGBLedMatrix *from_matrix(rgb_matrix::RGBMatrix *matrix) {
-  return reinterpret_cast<struct RGBLedMatrix*>(matrix);
+  return reinterpret_cast<struct RGBLedMatrix *>(matrix);
 }
 
 static rgb_matrix::FrameCanvas *to_canvas(struct LedCanvas *canvas) {
-  return reinterpret_cast<rgb_matrix::FrameCanvas*>(canvas);
+  return reinterpret_cast<rgb_matrix::FrameCanvas *>(canvas);
 }
 static struct LedCanvas *from_canvas(rgb_matrix::FrameCanvas *canvas) {
-  return reinterpret_cast<struct LedCanvas*>(canvas);
+  return reinterpret_cast<struct LedCanvas *>(canvas);
 }
 
 static rgb_matrix::Font *to_font(struct LedFont *font) {
-  return reinterpret_cast<rgb_matrix::Font*>(font);
+  return reinterpret_cast<rgb_matrix::Font *>(font);
 }
 static struct LedFont *from_font(rgb_matrix::Font *font) {
-  return reinterpret_cast<struct LedFont*>(font);
+  return reinterpret_cast<struct LedFont *>(font);
 }
-static rgb_matrix::Color* to_color(struct Color* color) {
-  return reinterpret_cast<rgb_matrix::Color*>(color);
+static rgb_matrix::Color *to_color(struct Color *color) {
+  return reinterpret_cast<rgb_matrix::Color *>(color);
 }
-
 
 static struct RGBLedMatrix *led_matrix_create_from_options_optional_edit(
-  struct RGBLedMatrixOptions *opts, struct RGBLedRuntimeOptions *rt_opts,
-  int *argc, char ***argv, bool remove_consumed_flags) {
+    struct RGBLedMatrixOptions *opts, struct RGBLedRuntimeOptions *rt_opts,
+    int *argc, char ***argv, bool remove_consumed_flags) {
   rgb_matrix::RuntimeOptions default_rt;
   rgb_matrix::RGBMatrix::Options default_opts;
 
@@ -68,7 +70,9 @@ static struct RGBLedMatrix *led_matrix_create_from_options_optional_edit(
     // default constructor that sets some values. These we override with the
     // C-struct values if available.
     // We assume everything non-zero has an explicit value.
-#define OPT_COPY_IF_SET(o) if (opts->o) default_opts.o = opts->o
+#define OPT_COPY_IF_SET(o)                                                     \
+  if (opts->o)                                                                 \
+  default_opts.o = opts->o
     OPT_COPY_IF_SET(hardware_mapping);
     OPT_COPY_IF_SET(rows);
     OPT_COPY_IF_SET(cols);
@@ -93,7 +97,9 @@ static struct RGBLedMatrix *led_matrix_create_from_options_optional_edit(
 
   if (rt_opts) {
     // Same story as RGBMatrix::Options
-#define RT_OPT_COPY_IF_SET(o) if (rt_opts->o) default_rt.o = rt_opts->o
+#define RT_OPT_COPY_IF_SET(o)                                                  \
+  if (rt_opts->o)                                                              \
+  default_rt.o = rt_opts->o
     RT_OPT_COPY_IF_SET(gpio_slowdown);
     RT_OPT_COPY_IF_SET(daemon);
     RT_OPT_COPY_IF_SET(drop_privileges);
@@ -148,25 +154,27 @@ static struct RGBLedMatrix *led_matrix_create_from_options_optional_edit(
 #undef ACTUAL_VALUE_BACK_TO_RT_OPT
   }
 
-  rgb_matrix::RGBMatrix *matrix
-    = rgb_matrix::RGBMatrix::CreateFromOptions(matrix_options, runtime_opt);
+  rgb_matrix::RGBMatrix *matrix =
+      rgb_matrix::RGBMatrix::CreateFromOptions(matrix_options, runtime_opt);
   return from_matrix(matrix);
 }
 
-struct RGBLedMatrix *led_matrix_create_from_options(
-  struct RGBLedMatrixOptions *opts, int *argc, char ***argv) {
+struct RGBLedMatrix *
+led_matrix_create_from_options(struct RGBLedMatrixOptions *opts, int *argc,
+                               char ***argv) {
   return led_matrix_create_from_options_optional_edit(opts, NULL, argc, argv,
                                                       true);
 }
 
-struct RGBLedMatrix *led_matrix_create_from_options_const_argv(
-  struct RGBLedMatrixOptions *opts, int argc, char **argv) {
+struct RGBLedMatrix *
+led_matrix_create_from_options_const_argv(struct RGBLedMatrixOptions *opts,
+                                          int argc, char **argv) {
   return led_matrix_create_from_options_optional_edit(opts, NULL, &argc, &argv,
                                                       false);
 }
 
 struct RGBLedMatrix *led_matrix_create_from_options_and_rt_options(
-  struct RGBLedMatrixOptions *opts, struct RGBLedRuntimeOptions * rt_opts) {
+    struct RGBLedMatrixOptions *opts, struct RGBLedRuntimeOptions *rt_opts) {
   return led_matrix_create_from_options_optional_edit(opts, rt_opts, NULL, NULL,
                                                       false);
 }
@@ -214,65 +222,58 @@ uint8_t led_matrix_get_brightness(struct RGBLedMatrix *matrix) {
   return to_matrix(matrix)->brightness();
 }
 
-void led_canvas_get_size(const struct LedCanvas *canvas,
-                         int *width, int *height) {
-  rgb_matrix::FrameCanvas *c = to_canvas((struct LedCanvas*)canvas);
-  if (c == NULL ) return;
-  if (width != NULL) *width = c->width();
-  if (height != NULL) *height = c->height();
+void led_canvas_get_size(const struct LedCanvas *canvas, int *width,
+                         int *height) {
+  rgb_matrix::FrameCanvas *c = to_canvas((struct LedCanvas *)canvas);
+  if (c == NULL)
+    return;
+  if (width != NULL)
+    *width = c->width();
+  if (height != NULL)
+    *height = c->height();
 }
 
-void led_canvas_set_pixel(struct LedCanvas *canvas, int x, int y,
-			  uint8_t r, uint8_t g, uint8_t b) {
+void led_canvas_set_pixel(struct LedCanvas *canvas, int x, int y, uint8_t r,
+                          uint8_t g, uint8_t b) {
   to_canvas(canvas)->SetPixel(x, y, r, g, b);
 }
 
-void led_canvas_set_pixels(struct LedCanvas *canvas, int x, int y,
-  int width, int height, struct Color *colors) {
+void led_canvas_set_pixels(struct LedCanvas *canvas, int x, int y, int width,
+                           int height, struct Color *colors) {
   to_canvas(canvas)->SetPixels(x, y, width, height, to_color(colors));
 }
 
-void led_canvas_clear(struct LedCanvas *canvas) {
-  to_canvas(canvas)->Clear();
-}
+void led_canvas_clear(struct LedCanvas *canvas) { to_canvas(canvas)->Clear(); }
 
-void led_canvas_fill(struct LedCanvas *canvas, uint8_t r, uint8_t g, uint8_t b) {
+void led_canvas_fill(struct LedCanvas *canvas, uint8_t r, uint8_t g,
+                     uint8_t b) {
   to_canvas(canvas)->Fill(r, g, b);
 }
 
 struct LedFont *load_font(const char *bdf_font_file) {
-  rgb_matrix::Font* font = new rgb_matrix::Font();
+  rgb_matrix::Font *font = new rgb_matrix::Font();
   font->LoadFont(bdf_font_file);
   return from_font(font);
 }
 
-int baseline_font(struct LedFont * font) {
-  return to_font(font)->baseline();
-}
+int baseline_font(struct LedFont *font) { return to_font(font)->baseline(); }
 
-int height_font(struct LedFont * font) {
-  return to_font(font)->height();
-}
+int height_font(struct LedFont *font) { return to_font(font)->height(); }
 
-struct LedFont *create_outline_font(struct LedFont * font) {
-  rgb_matrix::Font* outlineFont = to_font(font)->CreateOutlineFont();
+struct LedFont *create_outline_font(struct LedFont *font) {
+  rgb_matrix::Font *outlineFont = to_font(font)->CreateOutlineFont();
   return from_font(outlineFont);
 }
 
-void delete_font(struct LedFont *font) {
-  delete to_font(font);
-}
+void delete_font(struct LedFont *font) { delete to_font(font); }
 
 // -- Some utility functions.
 
 void set_image(struct LedCanvas *c, int canvas_offset_x, int canvas_offset_y,
-	       const uint8_t *image_buffer, size_t buffer_size_bytes,
-	       int image_width, int image_height,
-	       char is_bgr) {
-  SetImage(to_canvas(c), canvas_offset_x, canvas_offset_y,
-           image_buffer, buffer_size_bytes,
-           image_width, image_height,
-           is_bgr);
+               const uint8_t *image_buffer, size_t buffer_size_bytes,
+               int image_width, int image_height, char is_bgr) {
+  SetImage(to_canvas(c), canvas_offset_x, canvas_offset_y, image_buffer,
+           buffer_size_bytes, image_width, image_height, is_bgr);
 }
 
 // Draw text, a standard NUL terminated C-string encoded in UTF-8,
@@ -283,9 +284,11 @@ void set_image(struct LedCanvas *c, int canvas_offset_x, int canvas_offset_y,
 // negative)
 // Returns how many pixels we advanced on the screen.
 int draw_text(struct LedCanvas *c, struct LedFont *font, int x, int y,
-              uint8_t r, uint8_t g, uint8_t b, const char *utf8_text, int kerning_offset) {
+              uint8_t r, uint8_t g, uint8_t b, const char *utf8_text,
+              int kerning_offset) {
   const rgb_matrix::Color col = rgb_matrix::Color(r, g, b);
-  return DrawText(to_canvas(c), *to_font(font), x, y, col, NULL, utf8_text, kerning_offset);
+  return DrawText(to_canvas(c), *to_font(font), x, y, col, NULL, utf8_text,
+                  kerning_offset);
 }
 
 // Draw text, a standard NUL terminated C-string encoded in UTF-8,
@@ -297,20 +300,24 @@ int draw_text(struct LedCanvas *c, struct LedFont *font, int x, int y,
 // negative).
 // Returns font height to advance up on the screen.
 int vertical_draw_text(struct LedCanvas *c, struct LedFont *font, int x, int y,
-                       uint8_t r, uint8_t g, uint8_t b,
-                       const char *utf8_text, int kerning_offset = 0) {
+                       uint8_t r, uint8_t g, uint8_t b, const char *utf8_text,
+                       int kerning_offset = 0) {
   const rgb_matrix::Color col = rgb_matrix::Color(r, g, b);
-  return VerticalDrawText(to_canvas(c), *to_font(font), x, y, col, NULL, utf8_text, kerning_offset);
+  return VerticalDrawText(to_canvas(c), *to_font(font), x, y, col, NULL,
+                          utf8_text, kerning_offset);
 }
 
-// Draw a circle centered at "x", "y", with a radius of "radius" and with "color"
-void draw_circle(struct LedCanvas *c, int xx, int y, int radius, uint8_t r, uint8_t g, uint8_t b) {
-  const rgb_matrix::Color col = rgb_matrix::Color( r,g,b );
+// Draw a circle centered at "x", "y", with a radius of "radius" and with
+// "color"
+void draw_circle(struct LedCanvas *c, int xx, int y, int radius, uint8_t r,
+                 uint8_t g, uint8_t b) {
+  const rgb_matrix::Color col = rgb_matrix::Color(r, g, b);
   DrawCircle(to_canvas(c), xx, y, radius, col);
 }
 
 // Draw a line from "x0", "y0" to "x1", "y1" and with "color"
-void draw_line(struct LedCanvas *c, int x0, int y0, int x1, int y1, uint8_t r, uint8_t g, uint8_t b) {
+void draw_line(struct LedCanvas *c, int x0, int y0, int x1, int y1, uint8_t r,
+               uint8_t g, uint8_t b) {
   const rgb_matrix::Color col = rgb_matrix::Color(r, g, b);
   DrawLine(to_canvas(c), x0, y0, x1, y1, col);
 }

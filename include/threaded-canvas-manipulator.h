@@ -25,8 +25,8 @@
 #ifndef RPI_THREADED_CANVAS_MANIPULATOR_H
 #define RPI_THREADED_CANVAS_MANIPULATOR_H
 
-#include "thread.h"
 #include "canvas.h"
+#include "thread.h"
 
 namespace rgb_matrix {
 //
@@ -67,9 +67,9 @@ namespace rgb_matrix {
 class ThreadedCanvasManipulator : public Thread {
 public:
   ThreadedCanvasManipulator(Canvas *m) : running_(false), canvas_(m) {}
-  virtual ~ThreadedCanvasManipulator() {  Stop(); }
+  virtual ~ThreadedCanvasManipulator() { Stop(); }
 
-  virtual void Start(int realtime_priority=0, uint32_t affinity_mask=0) {
+  virtual void Start(int realtime_priority = 0, uint32_t affinity_mask = 0) {
     {
       MutexLock l(&mutex_);
       running_ = true;
@@ -98,6 +98,6 @@ private:
   bool running_;
   Canvas *const canvas_;
 };
-}  // namespace rgb_matrix
+} // namespace rgb_matrix
 
-#endif  // RPI_THREADED_CANVAS_MANIPULATOR_H
+#endif // RPI_THREADED_CANVAS_MANIPULATOR_H

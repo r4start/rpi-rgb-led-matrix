@@ -65,8 +65,8 @@ public:
   // Returns boolean "true" if the mapping can be successfully done with this
   // mapper.
   virtual bool GetSizeMapping(int matrix_width, int matrix_height,
-                              int *visible_width, int *visible_height)
-    const = 0;
+                              int *visible_width,
+                              int *visible_height) const = 0;
 
   // Map where a visible pixel (x,y) is mapped to the underlying matrix (x,y).
   //
@@ -78,8 +78,8 @@ public:
   // The logic_x, logic_y are output parameters and guaranteed not to be
   // nullptr.
   virtual void MapVisibleToMatrix(int matrix_width, int matrix_height,
-                                  int visible_x, int visible_y,
-                                  int *matrix_x, int *matrix_y) const = 0;
+                                  int visible_x, int visible_y, int *matrix_x,
+                                  int *matrix_y) const = 0;
 };
 
 // This is a place to register PixelMappers globally. If you register your
@@ -102,9 +102,8 @@ std::vector<std::string> GetAvailablePixelMappers();
 // Ownership of the returned object is _NOT_ transferred to the caller.
 // Current available mappers are "U-mapper" and "Rotate". The "Rotate"
 // gets a parameter denoting the angle.
-const PixelMapper *FindPixelMapper(const char *name,
-                                   int chain, int parallel,
+const PixelMapper *FindPixelMapper(const char *name, int chain, int parallel,
                                    const char *parameter = NULL);
-}  // namespace rgb_matrix
+} // namespace rgb_matrix
 
-#endif  // RGBMATRIX_PIXEL_MAPPER
+#endif // RGBMATRIX_PIXEL_MAPPER

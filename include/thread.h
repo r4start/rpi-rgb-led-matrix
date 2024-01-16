@@ -16,8 +16,8 @@
 #ifndef RPI_THREAD_H
 #define RPI_THREAD_H
 
-#include <stdint.h>
 #include <pthread.h>
+#include <stdint.h>
 
 namespace rgb_matrix {
 // Simple thread abstraction.
@@ -77,10 +77,11 @@ class MutexLock {
 public:
   MutexLock(Mutex *m) : mutex_(m) { mutex_->Lock(); }
   ~MutexLock() { mutex_->Unlock(); }
+
 private:
   Mutex *const mutex_;
 };
 
-}  // end namespace rgb_matrix
+} // end namespace rgb_matrix
 
-#endif  // RPI_THREAD_H
+#endif // RPI_THREAD_H

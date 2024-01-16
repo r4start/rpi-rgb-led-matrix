@@ -9,8 +9,8 @@
 
 #include "canvas.h"
 
-#include <stdint.h>
 #include <stddef.h>
+#include <stdint.h>
 
 #include <map>
 
@@ -51,8 +51,8 @@ public:
   // available.
   // Returns how much we advance on the screen, which is the width of the
   // character or 0 if we didn't draw any chracter.
-  int DrawGlyph(Canvas *c, int x, int y,
-                const Color &color, const Color *background_color,
+  int DrawGlyph(Canvas *c, int x, int y, const Color &color,
+                const Color *background_color,
                 uint32_t unicode_codepoint) const;
 
   // Same without background. Deprecated, use the one above instead.
@@ -68,10 +68,11 @@ public:
   Font *CreateOutlineFont() const;
 
 private:
-  Font(const Font& x);  // No copy constructor. Use references or pointer instead.
+  Font(
+      const Font &x); // No copy constructor. Use references or pointer instead.
 
   struct Glyph;
-  typedef std::map<uint32_t, Glyph*> CodepointGlyphMap;
+  typedef std::map<uint32_t, Glyph *> CodepointGlyphMap;
 
   const Glyph *FindGlyph(uint32_t codepoint) const;
 
@@ -103,8 +104,7 @@ private:
 // Returns 'true' if image was shown within canvas.
 bool SetImage(Canvas *c, int canvas_offset_x, int canvas_offset_y,
               const uint8_t *image_buffer, size_t buffer_size_bytes,
-              int image_width, int image_height,
-              bool is_bgr);
+              int image_width, int image_height, bool is_bgr);
 
 // Draw text, a standard NUL terminated C-string encoded in UTF-8,
 // with given "font" at "x","y" with "color".
@@ -113,9 +113,9 @@ bool SetImage(Canvas *c, int canvas_offset_x, int canvas_offset_y,
 // "kerning_offset" allows for additional spacing between characters (can be
 // negative)
 // Returns how many pixels we advanced on the screen.
-int DrawText(Canvas *c, const Font &font, int x, int y,
-             const Color &color, const Color *background_color,
-             const char *utf8_text, int kerning_offset = 0);
+int DrawText(Canvas *c, const Font &font, int x, int y, const Color &color,
+             const Color *background_color, const char *utf8_text,
+             int kerning_offset = 0);
 
 // Same without background. Deprecated, use the one above instead.
 int DrawText(Canvas *c, const Font &font, int x, int y, const Color &color,
@@ -133,12 +133,13 @@ int VerticalDrawText(Canvas *c, const Font &font, int x, int y,
                      const Color &color, const Color *background_color,
                      const char *utf8_text, int kerning_offset = 0);
 
-// Draw a circle centered at "x", "y", with a radius of "radius" and with "color"
+// Draw a circle centered at "x", "y", with a radius of "radius" and with
+// "color"
 void DrawCircle(Canvas *c, int x, int y, int radius, const Color &color);
 
 // Draw a line from "x0", "y0" to "x1", "y1" and with "color"
 void DrawLine(Canvas *c, int x0, int y0, int x1, int y1, const Color &color);
 
-}  // namespace rgb_matrix
+} // namespace rgb_matrix
 
-#endif  // RPI_GRAPHICS_H
+#endif // RPI_GRAPHICS_H

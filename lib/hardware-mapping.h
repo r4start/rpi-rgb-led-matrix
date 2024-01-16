@@ -16,7 +16,7 @@
 #ifndef RPI_HARDWARE_MAPPING_H
 #define RPI_HARDWARE_MAPPING_H
 
-#ifdef  __cplusplus
+#ifdef __cplusplus
 extern "C" {
 #endif
 
@@ -53,8 +53,8 @@ struct HardwareMapping {
 
 extern struct HardwareMapping matrix_hardware_mappings[];
 
-#ifdef  __cplusplus
-}  // extern C
+#ifdef __cplusplus
+} // extern C
 #endif
 
 #endif

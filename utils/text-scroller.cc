@@ -13,8 +13,8 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://gnu.org/licenses/gpl-2.0.txt>
 
-#include "led-matrix.h"
 #include "graphics.h"
+#include "led-matrix.h"
 
 #include <algorithm>
 #include <fstream>
@@ -35,32 +35,31 @@
 using namespace rgb_matrix;
 
 volatile bool interrupt_received = false;
-static void InterruptHandler(int signo) {
-  interrupt_received = true;
-}
+static void InterruptHandler(int signo) { interrupt_received = true; }
 
 static int usage(const char *progname) {
   fprintf(stderr, "usage: %s [options] [<text>| -i <filename>]\n", progname);
   fprintf(stderr, "Takes text and scrolls it with speed -s\n");
   fprintf(stderr, "Options:\n");
-  fprintf(stderr,
-          "\t-f <font-file>    : Path to *.bdf-font to be used.\n"
-          "\t-i <textfile>     : Input from file.\n"
-          "\t-s <speed>        : Approximate letters per second. \n"
-          "\t                    Positive: scroll right to left; Negative: scroll left to right\n"
-          "\t                    (Zero for no scrolling)\n"
-          "\t-l <loop-count>   : Number of loops through the text. "
-          "-1 for endless (default)\n"
-          "\t-b <on-time>,<off-time>  : Blink while scrolling. Keep "
-          "on and off for these amount of scrolled pixels.\n"
-          "\t-x <x-origin>     : Shift X-Origin of displaying text (Default: 0)\n"
-          "\t-y <y-origin>     : Shift Y-Origin of displaying text (Default: 0)\n"
-          "\t-t <track-spacing>: Spacing pixels between letters (Default: 0)\n"
-          "\n"
-          "\t-C <r,g,b>        : Text Color. Default 255,255,255 (white)\n"
-          "\t-B <r,g,b>        : Background-Color. Default 0,0,0\n"
-          "\t-O <r,g,b>        : Outline-Color, e.g. to increase contrast.\n"
-          );
+  fprintf(
+      stderr,
+      "\t-f <font-file>    : Path to *.bdf-font to be used.\n"
+      "\t-i <textfile>     : Input from file.\n"
+      "\t-s <speed>        : Approximate letters per second. \n"
+      "\t                    Positive: scroll right to left; Negative: scroll "
+      "left to right\n"
+      "\t                    (Zero for no scrolling)\n"
+      "\t-l <loop-count>   : Number of loops through the text. "
+      "-1 for endless (default)\n"
+      "\t-b <on-time>,<off-time>  : Blink while scrolling. Keep "
+      "on and off for these amount of scrolled pixels.\n"
+      "\t-x <x-origin>     : Shift X-Origin of displaying text (Default: 0)\n"
+      "\t-y <y-origin>     : Shift Y-Origin of displaying text (Default: 0)\n"
+      "\t-t <track-spacing>: Spacing pixels between letters (Default: 0)\n"
+      "\n"
+      "\t-C <r,g,b>        : Text Color. Default 255,255,255 (white)\n"
+      "\t-B <r,g,b>        : Background-Color. Default 0,0,0\n"
+      "\t-O <r,g,b>        : Outline-Color, e.g. to increase contrast.\n");
   fprintf(stderr, "\nGeneral LED matrix options:\n");
   rgb_matrix::PrintMatrixFlags(stderr);
   return 1;
@@ -71,14 +70,13 @@ static bool parseColor(Color *c, const char *str) {
 }
 
 static bool FullSaturation(const Color &c) {
-  return (c.r == 0 || c.r == 255)
-    && (c.g == 0 || c.g == 255)
-    && (c.b == 0 || c.b == 255);
+  return (c.r == 0 || c.r == 255) && (c.g == 0 || c.g == 255) &&
+         (c.b == 0 || c.b == 255);
 }
 
 static void add_micros(struct timespec *accumulator, long micros) {
   const long billion = 1000000000;
-  const int64_t nanos = (int64_t) micros * 1000;
+  const int64_t nanos = (int64_t)micros * 1000;
   accumulator->tv_sec += nanos / billion;
   accumulator->tv_nsec += nanos % billion;
   while (accumulator->tv_nsec > billion) {
@@ -98,7 +96,7 @@ static bool ReadLineOnChange(const char *filename, std::string *out,
   }
   const stat_fingerprint_t fp = ((uint64_t)sb.st_mtime << 32) + sb.st_size;
   if (fp == *last_file_status) {
-    return false;  // no change according to stat()
+    return false; // no change according to stat()
   }
 
   *last_file_status = fp;
@@ -107,7 +105,7 @@ static bool ReadLineOnChange(const char *filename, std::string *out,
                   std::istreambuf_iterator<char>());
   std::replace(str.begin(), str.end(), '\n', ' ');
   if (*out == str) {
-    return false;  // no content change
+    return false; // no content change
   }
   *out = str;
   return true;
@@ -121,14 +119,14 @@ int main(int argc, char *argv[]) {
   // files as that user).
   runtime_opt.drop_priv_user = getenv("SUDO_UID");
   runtime_opt.drop_priv_group = getenv("SUDO_GID");
-  if (!rgb_matrix::ParseOptionsFromFlags(&argc, &argv,
-                                         &matrix_options, &runtime_opt)) {
+  if (!rgb_matrix::ParseOptionsFromFlags(&argc, &argv, &matrix_options,
+                                         &runtime_opt)) {
     return usage(argv[0]);
   }
 
   Color color(255, 255, 255);
   Color bg_color(0, 0, 0);
-  Color outline_color(0,0,0);
+  Color outline_color(0, 0, 0);
   bool with_outline = false;
 
   const char *bdf_font_file = NULL;
@@ -146,19 +144,34 @@ int main(int argc, char *argv[]) {
   int opt;
   while ((opt = getopt(argc, argv, "x:y:f:C:B:O:t:s:l:b:i:")) != -1) {
     switch (opt) {
-    case 's': speed = atof(optarg); break;
+    case 's':
+      speed = atof(optarg);
+      break;
     case 'b':
       if (sscanf(optarg, "%d,%d", &blink_on, &blink_off) == 1) {
         blink_off = blink_on;
       }
       fprintf(stderr, "hz: on=%d off=%d\n", blink_on, blink_off);
       break;
-    case 'l': loops = atoi(optarg); break;
-    case 'x': x_orig = atoi(optarg); xorigin_configured = true; break;
-    case 'y': y_orig = atoi(optarg); break;
-    case 'f': bdf_font_file = strdup(optarg); break;
-    case 'i': input_file = strdup(optarg); break;
-    case 't': letter_spacing = atoi(optarg); break;
+    case 'l':
+      loops = atoi(optarg);
+      break;
+    case 'x':
+      x_orig = atoi(optarg);
+      xorigin_configured = true;
+      break;
+    case 'y':
+      y_orig = atoi(optarg);
+      break;
+    case 'f':
+      bdf_font_file = strdup(optarg);
+      break;
+    case 'i':
+      input_file = strdup(optarg);
+      break;
+    case 't':
+      letter_spacing = atoi(optarg);
+      break;
     case 'C':
       if (!parseColor(&color, optarg)) {
         fprintf(stderr, "Invalid color spec: %s\n", optarg);
@@ -190,14 +203,14 @@ int main(int argc, char *argv[]) {
       fprintf(stderr, "Couldn't read file '%s'\n", input_file);
       return usage(argv[0]);
     }
-  }
-  else {
+  } else {
     for (int i = optind; i < argc; ++i) {
       line.append(argv[i]).append(" ");
     }
 
     if (line.empty()) {
-      fprintf(stderr, "Add the text you want to print on the command-line or -i for input file.\n");
+      fprintf(stderr, "Add the text you want to print on the command-line or "
+                      "-i for input file.\n");
       return usage(argv[0]);
     }
   }
@@ -229,10 +242,9 @@ int main(int argc, char *argv[]) {
   if (canvas == NULL)
     return 1;
 
-  const bool all_extreme_colors = (matrix_options.brightness == 100)
-    && FullSaturation(color)
-    && FullSaturation(bg_color)
-    && FullSaturation(outline_color);
+  const bool all_extreme_colors =
+      (matrix_options.brightness == 100) && FullSaturation(color) &&
+      FullSaturation(bg_color) && FullSaturation(outline_color);
   if (all_extreme_colors)
     canvas->SetPWMBits(1);
 
@@ -273,32 +285,32 @@ int main(int argc, char *argv[]) {
     }
     ++frame_counter;
     offscreen_canvas->Fill(bg_color.r, bg_color.g, bg_color.b);
-    const bool draw_on_frame = (blink_on <= 0)
-      || (frame_counter % (blink_on + blink_off) < (uint64_t)blink_on);
+    const bool draw_on_frame =
+        (blink_on <= 0) ||
+        (frame_counter % (blink_on + blink_off) < (uint64_t)blink_on);
 
     if (draw_on_frame) {
       if (outline_font) {
         // The outline font, we need to write with a negative (-2) text-spacing,
         // as we want to have the same letter pitch as the regular text that
         // we then write on top.
-        rgb_matrix::DrawText(offscreen_canvas, *outline_font,
-                             x - 1, y + font.baseline(),
-                             outline_color, NULL,
+        rgb_matrix::DrawText(offscreen_canvas, *outline_font, x - 1,
+                             y + font.baseline(), outline_color, NULL,
                              line.c_str(), letter_spacing - 2);
       }
 
       // length = holds how many pixels our text takes up
-      length = rgb_matrix::DrawText(offscreen_canvas, font,
-                                    x, y + font.baseline(),
-                                    color, NULL,
-                                    line.c_str(), letter_spacing);
+      length =
+          rgb_matrix::DrawText(offscreen_canvas, font, x, y + font.baseline(),
+                               color, NULL, line.c_str(), letter_spacing);
     }
 
     x += scroll_direction;
     if ((scroll_direction < 0 && x + length < 0) ||
         (scroll_direction > 0 && x > canvas->width())) {
       x = x_orig + ((scroll_direction > 0) ? -length : 0);
-      if (loops > 0) --loops;
+      if (loops > 0)
+        --loops;
     }
 
     // Make sure render-time delays are not influencing scroll-time
@@ -313,7 +325,8 @@ int main(int argc, char *argv[]) {
     }
     // Swap the offscreen_canvas with canvas on vsync, avoids flickering
     offscreen_canvas = canvas->SwapOnVSync(offscreen_canvas);
-    if (speed <= 0) pause();  // Nothing to scroll.
+    if (speed <= 0)
+      pause(); // Nothing to scroll.
   }
 
   // Finished. Shut down the RGB matrix.
