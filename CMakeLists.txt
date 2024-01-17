@@ -5,7 +5,7 @@ set(CMAKE_CXX_STANDARD 17)
 
 set(COMMON_FLAGS "-Wall -pedantic -Werror -fPIC")
 set(DEBUG_FLAGS "-ggdb -g3 -O0")
-set(RELEASE_FLAGS "-O3 -flto=thin")
+set(RELEASE_FLAGS "-O3")
 set(CXX_SPECIFIC_FLAGS "")
 set(C_SPECIFIC_FLAGS "-std=c11")
 

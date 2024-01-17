@@ -25,6 +25,7 @@
 
 #include <algorithm>
 #include <bitset>
+#include <vector>
 
 // The little question-mark box "�" for unknown code.
 static const uint32_t kUnicodeReplacementCodepoint = 0xFFFD;
