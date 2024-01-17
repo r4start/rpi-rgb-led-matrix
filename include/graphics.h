@@ -7,12 +7,12 @@
 #ifndef RPI_GRAPHICS_H
 #define RPI_GRAPHICS_H
 
-#include "canvas.h"
-
-#include <stddef.h>
-#include <stdint.h>
+#include <cstddef>
+#include <cstdint>
 
 #include <map>
+
+#include "canvas.h"
 
 namespace rgb_matrix {
 struct Color {

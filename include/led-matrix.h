@@ -20,8 +20,8 @@
 #ifndef RPI_RGBMATRIX_H
 #define RPI_RGBMATRIX_H
 
-#include <stddef.h>
-#include <stdint.h>
+#include <cstddef>
+#include <cstdint>
 
 #include <string>
 #include <vector>

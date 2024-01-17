@@ -16,8 +16,9 @@
 #ifndef RPI_THREAD_H
 #define RPI_THREAD_H
 
+#include <cstdint>
+
 #include <pthread.h>
-#include <stdint.h>
 
 namespace rgb_matrix {
 // Simple thread abstraction.

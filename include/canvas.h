@@ -15,7 +15,7 @@
 
 #ifndef RPI_CANVAS_H
 #define RPI_CANVAS_H
-#include <stdint.h>
+#include <cstdint>
 
 namespace rgb_matrix {
 // An interface for things a Canvas can do. The RGBMatrix implements this

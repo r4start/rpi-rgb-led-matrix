@@ -5,13 +5,15 @@
 // This code is public domain
 // (but note, that the led-matrix library this depends on is GPL v2)
 
-#include "led-matrix.h"
+#include <memory>
 
 #include <math.h>
 #include <signal.h>
 #include <stdio.h>
 #include <time.h>
 #include <unistd.h>
+
+#include "led-matrix.h"
 
 #define FPS 60
 
@@ -39,7 +41,7 @@ int main(int argc, char *argv[]) {
   signal(SIGINT, InterruptHandler);
 
   ssize_t frame_size = canvas->width() * canvas->height() * 3;
-  uint8_t buf[frame_size];
+  auto buf = std::make_unique<uint8_t[]>(frame_size);
 
   while (1) {
     struct timespec start;
