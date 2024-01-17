@@ -11,8 +11,12 @@ namespace rgb = rgb_matrix;
 static auto create_options() -> rgb::RGBMatrix::Options;
 static void draw(rgb::Canvas *c, std::atomic_bool &flag);
 
-std::atomic_bool STOP_FLAG = false;
+static std::atomic_bool STOP_FLAG = false;
 static void interrupt(int signo);
+
+static constexpr rgb::Color WHITE = rgb::Color(255, 255, 255);
+static constexpr rgb::Color BROWN = rgb::Color(165, 42, 42);
+static constexpr auto GREEN = rgb::Color(0, 255, 0);
 
 int main() {
   const auto options = create_options();
@@ -49,24 +53,48 @@ static auto create_options() -> rgb::RGBMatrix::Options {
 static void draw(rgb::Canvas *c, std::atomic_bool &flag) {
   using namespace std::chrono_literals;
 
+  constexpr int snow_height = 10;
+
   const int width = c->width() - 1;
   const int height = c->height() - 1;
 
   for (;!flag.load(std::memory_order_relaxed);) {
-    // Borders
-    rgb::DrawLine(c, 0, 0, width, 0, rgb::Color(255, 0, 0));
-    rgb::DrawLine(c, 0, height, width, height, rgb::Color(255, 255, 0));
-    rgb::DrawLine(c, 0, 0, 0, height, rgb::Color(0, 0, 255));
-    rgb::DrawLine(c, width, 0, width, height, rgb::Color(0, 255, 0));
+    //rgb::DrawCircle(c, width / 2, height / 2, 10, WHITE);
 
-    // Diagonals.
-    rgb::DrawLine(c, 0, 0, width, height, rgb::Color(255, 255, 255));
-    rgb::DrawLine(c, 0, height, width, 0, rgb::Color(255, 0, 255));
+    // Draw snow on the ground.
+    for (int i = 0; i < snow_height; ++i) {
+      auto y = height - i;
+      rgb::DrawLine(c, 0, y, width, y, WHITE);
+    }
+
+    // Draw a tree.
+    {
+      constexpr auto x = 12;
+      constexpr auto tree_width = 3;
+      constexpr auto tree_height = 12;
+      constexpr auto tree_start_offset = 4;
+
+      for (int i = 0; i < tree_height; ++i) {
+        auto y = height - tree_start_offset - i;
+        rgb::DrawLine(c, x, y, x + tree_width, y, BROWN);
+      }
+
+      auto y = height - tree_height - tree_start_offset;
+      constexpr auto level_width = 15;
+      constexpr auto tree_segments_count = 5;
+      for (int segment = 0; segment < tree_segments_count; ++segment) {
+        auto current_level_width = level_width - segment;
+        for (int i = 0; i < 4; ++i, --y) {
+          rgb::DrawLine(c, x - current_level_width / 2, y, x + tree_width + current_level_width / 2, y, GREEN);
+          current_level_width -= 2;
+        }
+      }
+    }
 
     std::this_thread::sleep_for(100ms);
   }
 }
 
 static void interrupt(int /*signo*/) {
-    STOP_FLAG.store(true, std::memory_order_relaxed);
+  STOP_FLAG.store(true, std::memory_order_relaxed);
 }

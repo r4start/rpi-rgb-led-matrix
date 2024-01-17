@@ -16,8 +16,9 @@
 
 namespace rgb_matrix {
 struct Color {
-  Color() : r(0), g(0), b(0) {}
-  Color(uint8_t rr, uint8_t gg, uint8_t bb) : r(rr), g(gg), b(bb) {}
+  constexpr Color() : r(0), g(0), b(0) {}
+  constexpr Color(uint8_t rr, uint8_t gg, uint8_t bb) : r(rr), g(gg), b(bb) {}
+
   uint8_t r;
   uint8_t g;
   uint8_t b;
