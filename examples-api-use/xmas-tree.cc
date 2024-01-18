@@ -74,21 +74,26 @@ static void draw(rgb::Canvas *c, std::atomic_bool &flag) {
       constexpr auto tree_height = 12;
       constexpr auto tree_start_offset = 4;
 
+      // Draw a trunk.
       for (int i = 0; i < tree_height; ++i) {
         auto y = height - tree_start_offset - i;
         rgb::DrawLine(c, x, y, x + tree_width, y, BROWN);
       }
 
+      constexpr auto levels = 5;
+      constexpr auto tree_segments_count = 3;
+
       auto y = height - tree_height - tree_start_offset;
-      constexpr auto level_width = 15;
-      constexpr auto tree_segments_count = 5;
+
+      // Draw main segments.
       for (int segment = 0; segment < tree_segments_count; ++segment) {
-        auto current_level_width = level_width - segment;
-        for (int i = 0; i < 4; ++i, --y) {
-          rgb::DrawLine(c, x - current_level_width / 2, y, x + tree_width + current_level_width / 2, y, GREEN);
-          current_level_width -= 2;
+        for (int i = levels; i >= 0; --i, --y) {
+          rgb::DrawLine(c, x - i, y, x + i + tree_width, y, GREEN);
         }
       }
+
+      // Draw the top
+      rgb::DrawLine(c, x + 1, y, x + tree_width - 1, y, GREEN);
     }
 
     std::this_thread::sleep_for(100ms);
