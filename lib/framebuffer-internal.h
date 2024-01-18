@@ -18,8 +18,8 @@
 #include <stdint.h>
 #include <stdlib.h>
 
-#include "hardware-mapping.h"
 #include "../include/graphics.h"
+#include "hardware-mapping.h"
 
 namespace rgb_matrix {
 class GPIO;
@@ -30,7 +30,7 @@ class RowAddressSetter;
 // An opaque type used within the framebuffer that can be used
 // to copy between PixelMappers.
 struct PixelDesignator {
-  PixelDesignator() : gpio_word(-1), r_bit(0), g_bit(0), b_bit(0), mask(~0u){}
+  PixelDesignator() : gpio_word(-1), r_bit(0), g_bit(0), b_bit(0), mask(~0u) {}
   long gpio_word;
   gpio_bits_t r_bit;
   gpio_bits_t g_bit;
@@ -56,7 +56,7 @@ public:
 private:
   const int width_;
   const int height_;
-  const PixelDesignator fill_bits_;  // Precalculated for fill.
+  const PixelDesignator fill_bits_; // Precalculated for fill.
   PixelDesignator *const buffer_;
 };
 
@@ -84,19 +84,16 @@ public:
   static constexpr int kBitPlanes = 11;
   static constexpr int kDefaultBitPlanes = 11;
 
-  Framebuffer(int rows, int columns, int parallel,
-              int scan_mode,
-              const char* led_sequence, bool inverse_color,
+  Framebuffer(int rows, int columns, int parallel, int scan_mode,
+              const char *led_sequence, bool inverse_color,
               PixelDesignatorMap **mapper);
   ~Framebuffer();
 
   // Initialize GPIO bits for output. Only call once.
   static void InitHardwareMapping(const char *named_hardware);
   static void InitGPIO(GPIO *io, int rows, int parallel,
-                       bool allow_hardware_pulsing,
-                       int pwm_lsb_nanoseconds,
-                       int dither_bits,
-                       int row_address_type);
+                       bool allow_hardware_pulsing, int pwm_lsb_nanoseconds,
+                       int dither_bits, int row_address_type);
   static void InitializePanels(GPIO *io, const char *panel_type, int columns);
 
   // Set PWM bits used for output. Default is 11, but if you only deal with
@@ -144,8 +141,8 @@ private:
 
   void InitDefaultDesignator(int x, int y, const char *led_sequence,
                              PixelDesignator *designator);
-  inline void  MapColors(uint8_t r, uint8_t g, uint8_t b,
-                         uint16_t *red, uint16_t *green, uint16_t *blue);
+  inline void MapColors(uint8_t r, uint8_t g, uint8_t b, uint16_t *red,
+                        uint16_t *green, uint16_t *blue);
   const int rows_;     // Number of rows. 16 or 32.
   const int parallel_; // Parallel rows of chains. 1 or 2.
   const int height_;   // rows * parallel
@@ -154,7 +151,7 @@ private:
   const int scan_mode_;
   const bool inverse_color_;
 
-  uint8_t pwm_bits_;   // PWM bits to display.
+  uint8_t pwm_bits_; // PWM bits to display.
   bool do_luminance_correct_;
   uint8_t brightness_;
 
@@ -170,8 +167,8 @@ private:
   gpio_bits_t *bitplane_buffer_;
   inline gpio_bits_t *ValueAt(int double_row, int column, int bit);
 
-  PixelDesignatorMap **shared_mapper_;  // Storage in RGBMatrix.
+  PixelDesignatorMap **shared_mapper_; // Storage in RGBMatrix.
 };
-}  // namespace internal
-}  // namespace rgb_matrix
+} // namespace internal
+} // namespace rgb_matrix
 #endif // RPI_RGBMATRIX_FRAMEBUFFER_INTERNAL_H

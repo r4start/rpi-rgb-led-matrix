@@ -24,17 +24,16 @@
 
 namespace rgb_matrix {
 void *Thread::PthreadCallRun(void *tobject) {
-  reinterpret_cast<Thread*>(tobject)->Run();
+  reinterpret_cast<Thread *>(tobject)->Run();
   return NULL;
 }
 
 Thread::Thread() : started_(false) {}
-Thread::~Thread() {
-  WaitStopped();
-}
+Thread::~Thread() { WaitStopped(); }
 
 void Thread::WaitStopped() {
-  if (!started_) return;
+  if (!started_)
+    return;
   int result = pthread_join(thread_, NULL);
   if (result != 0) {
     perror("Issue joining thread");
@@ -43,7 +42,7 @@ void Thread::WaitStopped() {
 }
 
 void Thread::Start(int priority, uint32_t affinity_mask) {
-  assert(!started_);  // Did you call WaitStopped() ?
+  assert(!started_); // Did you call WaitStopped() ?
   pthread_create(&thread_, NULL, &PthreadCallRun, this);
   int err;
 
@@ -52,8 +51,9 @@ void Thread::Start(int priority, uint32_t affinity_mask) {
     p.sched_priority = priority;
     if ((err = pthread_setschedparam(thread_, SCHED_FIFO, &p))) {
       char buffer[PATH_MAX];
-      const char *bin = realpath("/proc/self/exe", buffer);  // Linux specific.
-      fprintf(stderr, "Can't set realtime thread priority=%d: %s.\n"
+      const char *bin = realpath("/proc/self/exe", buffer); // Linux specific.
+      fprintf(stderr,
+              "Can't set realtime thread priority=%d: %s.\n"
               "\tYou are probably not running as root ?\n"
               "\tThis will seriously mess with color stability and flicker\n"
               "\tof the matrix. Please run as `root` (e.g. by invoking this\n"
@@ -68,11 +68,11 @@ void Thread::Start(int priority, uint32_t affinity_mask) {
     cpu_set_t cpu_mask;
     CPU_ZERO(&cpu_mask);
     for (int i = 0; i < 32; ++i) {
-      if ((affinity_mask & (1<<i)) != 0) {
+      if ((affinity_mask & (1 << i)) != 0) {
         CPU_SET(i, &cpu_mask);
       }
     }
-    if ((err=pthread_setaffinity_np(thread_, sizeof(cpu_mask), &cpu_mask))) {
+    if ((err = pthread_setaffinity_np(thread_, sizeof(cpu_mask), &cpu_mask))) {
       // On a Pi1, this won't work as there is only one core. Don't worry in
       // that case.
     }
@@ -85,8 +85,7 @@ bool Mutex::WaitOn(pthread_cond_t *cond, long timeout_ms) {
   if (timeout_ms < 0) {
     pthread_cond_wait(cond, &mutex_);
     return true;
-  }
-  else {
+  } else {
     struct timespec t;
     clock_gettime(CLOCK_REALTIME, &t);
     t.tv_sec += timeout_ms / 1000;
@@ -97,4 +96,4 @@ bool Mutex::WaitOn(pthread_cond_t *cond, long timeout_ms) {
     return pthread_cond_timedwait(cond, &mutex_, &t) == 0;
   }
 }
-}  // namespace rgb_matrix
+} // namespace rgb_matrix

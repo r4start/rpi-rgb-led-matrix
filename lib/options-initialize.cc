@@ -15,41 +15,40 @@
 
 #include "led-matrix.h"
 
+#include <grp.h>
+#include <pwd.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/types.h>
 #include <unistd.h>
-#include <grp.h>
-#include <pwd.h>
 
 #include <vector>
 
-#include "multiplex-mappers-internal.h"
 #include "framebuffer-internal.h"
+#include "multiplex-mappers-internal.h"
 
 #include "gpio.h"
 
 namespace rgb_matrix {
-RuntimeOptions::RuntimeOptions() :
+RuntimeOptions::RuntimeOptions()
+    :
 #ifdef RGB_SLOWDOWN_GPIO
-  gpio_slowdown(RGB_SLOWDOWN_GPIO),
+      gpio_slowdown(RGB_SLOWDOWN_GPIO),
 #else
-  gpio_slowdown(GPIO::IsPi4() ? 2 : 1),
+      gpio_slowdown(GPIO::IsPi4() ? 2 : 1),
 #endif
-  daemon(0),            // Don't become a daemon by default.
-  drop_privileges(1),   // Encourage good practice: drop privileges by default.
-  do_gpio_init(true),
-  drop_priv_user("daemon"),
-  drop_priv_group("daemon")
-{
+      daemon(0), // Don't become a daemon by default.
+      drop_privileges(
+          1), // Encourage good practice: drop privileges by default.
+      do_gpio_init(true), drop_priv_user("daemon"), drop_priv_group("daemon") {
   // Nothing to see here.
 }
 
 namespace {
-typedef char** argv_iterator;
+typedef char **argv_iterator;
 
-#define OPTION_PREFIX     "--led-"
+#define OPTION_PREFIX "--led-"
 #define OPTION_PREFIX_LEN strlen(OPTION_PREFIX)
 
 static bool ConsumeBoolFlag(const char *flag_name, const argv_iterator &pos,
@@ -64,48 +63,49 @@ static bool ConsumeBoolFlag(const char *flag_name, const argv_iterator &pos,
     option += 3;
   }
   if (strcmp(option, flag_name) != 0)
-    return false;  // not consumed.
+    return false; // not consumed.
   *result_value = value_to_set;
   return true;
 }
 
-static bool ConsumeIntFlag(const char *flag_name,
-                           argv_iterator &pos, const argv_iterator end,
-                           int *result_value, int *error) {
+static bool ConsumeIntFlag(const char *flag_name, argv_iterator &pos,
+                           const argv_iterator end, int *result_value,
+                           int *error) {
   const char *option = *pos;
   if (strncmp(option, OPTION_PREFIX, OPTION_PREFIX_LEN) != 0)
     return false;
   option += OPTION_PREFIX_LEN;
   const size_t flag_len = strlen(flag_name);
   if (strncmp(option, flag_name, flag_len) != 0)
-    return false;  // not consumed.
+    return false; // not consumed.
   const char *value;
-  if (option[flag_len] == '=')  // --option=42  # value in same arg
+  if (option[flag_len] == '=') // --option=42  # value in same arg
     value = option + flag_len + 1;
-  else if (pos + 1 < end) {     // --option 42  # value in next arg
+  else if (pos + 1 < end) { // --option 42  # value in next arg
     value = *(++pos);
   } else {
-    fprintf(stderr, "Parameter expected after %s%s\n",
-            OPTION_PREFIX, flag_name);
+    fprintf(stderr, "Parameter expected after %s%s\n", OPTION_PREFIX,
+            flag_name);
     ++*error;
-    return true;  // consumed, but error.
+    return true; // consumed, but error.
   }
   char *end_value = NULL;
   int val = strtol(value, &end_value, 10);
   if (!*value || *end_value) {
-    fprintf(stderr, "Couldn't parse parameter %s%s=%s "
+    fprintf(stderr,
+            "Couldn't parse parameter %s%s=%s "
             "(Expected decimal number but '%s' looks funny)\n",
             OPTION_PREFIX, flag_name, value, end_value);
     ++*error;
-    return true;  // consumed, but error
+    return true; // consumed, but error
   }
   *result_value = val;
-  return true;  // consumed.
+  return true; // consumed.
 }
 
 // The resulting value is allocated.
-static bool ConsumeStringFlag(const char *flag_name,
-                              argv_iterator &pos, const argv_iterator end,
+static bool ConsumeStringFlag(const char *flag_name, argv_iterator &pos,
+                              const argv_iterator end,
                               const char **result_value, int *error) {
   const char *option = *pos;
   if (strncmp(option, OPTION_PREFIX, OPTION_PREFIX_LEN) != 0)
@@ -113,50 +113,47 @@ static bool ConsumeStringFlag(const char *flag_name,
   option += OPTION_PREFIX_LEN;
   const size_t flag_len = strlen(flag_name);
   if (strncmp(option, flag_name, flag_len) != 0)
-    return false;  // not consumed.
+    return false; // not consumed.
   const char *value;
-  if (option[flag_len] == '=')  // --option=hello  # value in same arg
+  if (option[flag_len] == '=') // --option=hello  # value in same arg
     value = option + flag_len + 1;
-  else if (pos + 1 < end) {     // --option hello  # value in next arg
+  else if (pos + 1 < end) { // --option hello  # value in next arg
     value = *(++pos);
   } else {
-    fprintf(stderr, "Parameter expected after %s%s\n",
-            OPTION_PREFIX, flag_name);
+    fprintf(stderr, "Parameter expected after %s%s\n", OPTION_PREFIX,
+            flag_name);
     ++*error;
     *result_value = NULL;
-    return true;  // consumed, but error.
+    return true; // consumed, but error.
   }
-  *result_value = strdup(value);  // This will leak, but no big deal.
+  *result_value = strdup(value); // This will leak, but no big deal.
   return true;
 }
 
-static bool FlagInit(int &argc, char **&argv,
-                     RGBMatrix::Options *mopts,
-                     RuntimeOptions *ropts,
-                     bool remove_consumed_options) {
+static bool FlagInit(int &argc, char **&argv, RGBMatrix::Options *mopts,
+                     RuntimeOptions *ropts, bool remove_consumed_options) {
   argv_iterator it = &argv[0];
   argv_iterator end = it + argc;
 
-  std::vector<char*> unused_options;
-  unused_options.push_back(*it++);  // Not interested in program name
+  std::vector<char *> unused_options;
+  unused_options.push_back(*it++); // Not interested in program name
 
   bool bool_scratch;
   int err = 0;
-  bool posix_end_option_seen = false;  // end of options '--'
+  bool posix_end_option_seen = false; // end of options '--'
   for (/**/; it < end; ++it) {
     posix_end_option_seen |= (strcmp(*it, "--") == 0);
     if (!posix_end_option_seen) {
-      if (ConsumeStringFlag("gpio-mapping", it, end,
-                            &mopts->hardware_mapping, &err))
+      if (ConsumeStringFlag("gpio-mapping", it, end, &mopts->hardware_mapping,
+                            &err))
         continue;
-      if (ConsumeStringFlag("rgb-sequence", it, end,
-                            &mopts->led_rgb_sequence, &err))
+      if (ConsumeStringFlag("rgb-sequence", it, end, &mopts->led_rgb_sequence,
+                            &err))
         continue;
       if (ConsumeStringFlag("pixel-mapper", it, end,
                             &mopts->pixel_mapper_config, &err))
         continue;
-      if (ConsumeStringFlag("panel-type", it, end,
-                            &mopts->panel_type, &err))
+      if (ConsumeStringFlag("panel-type", it, end, &mopts->panel_type, &err))
         continue;
       if (ConsumeIntFlag("rows", it, end, &mopts->rows, &err))
         continue;
@@ -177,11 +174,11 @@ static bool FlagInit(int &argc, char **&argv,
       if (ConsumeIntFlag("pwm-lsb-nanoseconds", it, end,
                          &mopts->pwm_lsb_nanoseconds, &err))
         continue;
-      if (ConsumeIntFlag("pwm-dither-bits", it, end,
-                         &mopts->pwm_dither_bits, &err))
+      if (ConsumeIntFlag("pwm-dither-bits", it, end, &mopts->pwm_dither_bits,
+                         &err))
         continue;
-      if (ConsumeIntFlag("row-addr-type", it, end,
-                         &mopts->row_address_type, &err))
+      if (ConsumeIntFlag("row-addr-type", it, end, &mopts->row_address_type,
+                         &err))
         continue;
       if (ConsumeIntFlag("limit-refresh", it, end,
                          &mopts->limit_refresh_rate_hz, &err))
@@ -199,7 +196,7 @@ static bool FlagInit(int &argc, char **&argv,
           new_sequence[0] = mopts->led_rgb_sequence[0];
           new_sequence[1] = mopts->led_rgb_sequence[2];
           new_sequence[2] = mopts->led_rgb_sequence[1];
-          mopts->led_rgb_sequence = new_sequence;  // leaking. Ignore.
+          mopts->led_rgb_sequence = new_sequence; // leaking. Ignore.
         }
         continue;
       }
@@ -228,12 +225,12 @@ static bool FlagInit(int &argc, char **&argv,
         ropts->drop_privileges = bool_scratch ? 1 : 0;
         continue;
       }
-      if (ConsumeStringFlag("drop-priv-user", it, end,
-                            &ropts->drop_priv_user, &err)) {
+      if (ConsumeStringFlag("drop-priv-user", it, end, &ropts->drop_priv_user,
+                            &err)) {
         continue;
       }
-      if (ConsumeStringFlag("drop-priv-group", it, end,
-                            &ropts->drop_priv_group, &err)) {
+      if (ConsumeStringFlag("drop-priv-group", it, end, &ropts->drop_priv_group,
+                            &err)) {
         continue;
       }
 
@@ -251,7 +248,7 @@ static bool FlagInit(int &argc, char **&argv,
 
   if (remove_consumed_options) {
     // Success. Re-arrange flags to only include the ones not consumed.
-    argc = (int) unused_options.size();
+    argc = (int)unused_options.size();
     for (int i = 0; i < argc; ++i) {
       argv[i] = unused_options[i];
     }
@@ -259,7 +256,7 @@ static bool FlagInit(int &argc, char **&argv,
   return true;
 }
 
-}  // anonymous namespace
+} // anonymous namespace
 
 bool ParseOptionsFromFlags(int *argc, char ***argv,
                            RGBMatrix::Options *m_opt_in,
@@ -279,13 +276,14 @@ bool ParseOptionsFromFlags(int *argc, char ***argv,
   return FlagInit(*argc, *argv, mopt, ropt, remove_consumed_options);
 }
 
-static std::string CreateAvailableMultiplexString(
-  const internal::MuxMapperList &m) {
+static std::string
+CreateAvailableMultiplexString(const internal::MuxMapperList &m) {
   std::string result;
   char buffer[256];
   for (size_t i = 0; i < m.size(); ++i) {
-    if (i != 0) result.append("; ");
-    snprintf(buffer, sizeof(buffer), "%d=%s", (int) i+1, m[i]->GetName());
+    if (i != 0)
+      result.append("; ");
+    snprintf(buffer, sizeof(buffer), "%d=%s", (int)i + 1, m[i]->GetName());
     result.append(buffer);
   }
   return result;
@@ -293,68 +291,75 @@ static std::string CreateAvailableMultiplexString(
 
 void PrintMatrixFlags(FILE *out, const RGBMatrix::Options &d,
                       const RuntimeOptions &r) {
-  const internal::MuxMapperList &muxers
-    = internal::GetRegisteredMultiplexMappers();
+  const internal::MuxMapperList &muxers =
+      internal::GetRegisteredMultiplexMappers();
 
   std::vector<std::string> mapper_names = GetAvailablePixelMappers();
   std::string available_mappers;
   for (size_t i = 0; i < mapper_names.size(); ++i) {
-    if (i != 0) available_mappers.append(", ");
+    if (i != 0)
+      available_mappers.append(", ");
     available_mappers.append("\"").append(mapper_names[i]).append("\"");
   }
 
-  fprintf(out,
-          "\t--led-gpio-mapping=<name> : Name of GPIO mapping used. Default \"%s\"\n"
-          "\t--led-rows=<rows>         : Panel rows. Typically 8, 16, 32 or 64."
-          " (Default: %d).\n"
-          "\t--led-cols=<cols>         : Panel columns. Typically 32 or 64. "
-          "(Default: %d).\n"
-          "\t--led-chain=<chained>     : Number of daisy-chained panels. "
-          "(Default: %d).\n"
-          "\t--led-parallel=<parallel> : Parallel chains. range=1..3 "
+  fprintf(
+      out,
+      "\t--led-gpio-mapping=<name> : Name of GPIO mapping used. Default "
+      "\"%s\"\n"
+      "\t--led-rows=<rows>         : Panel rows. Typically 8, 16, 32 or 64."
+      " (Default: %d).\n"
+      "\t--led-cols=<cols>         : Panel columns. Typically 32 or 64. "
+      "(Default: %d).\n"
+      "\t--led-chain=<chained>     : Number of daisy-chained panels. "
+      "(Default: %d).\n"
+      "\t--led-parallel=<parallel> : Parallel chains. range=1..3 "
 #ifdef ENABLE_WIDE_GPIO_COMPUTE_MODULE
-          "(6 for CM3) "
+      "(6 for CM3) "
 #endif
-          "(Default: %d).\n"
-          "\t--led-multiplexing=<0..%d> : Mux type: 0=direct; %s (Default: 0)\n"
-          "\t--led-pixel-mapper        : Semicolon-separated list of pixel-mappers to arrange pixels.\n"
-          "\t                            Optional params after a colon e.g. \"U-mapper;Rotate:90\"\n"
-          "\t                            Available: %s. Default: \"\"\n"
-          "\t--led-pwm-bits=<1..%d>    : PWM bits (Default: %d).\n"
-          "\t--led-brightness=<percent>: Brightness in percent (Default: %d).\n"
-          "\t--led-scan-mode=<0..1>    : 0 = progressive; 1 = interlaced "
-          "(Default: %d).\n"
-          "\t--led-row-addr-type=<0..4>: 0 = default; 1 = AB-addressed panels; 2 = direct row select; 3 = ABC-addressed panels; 4 = ABC Shift + DE direct "
-          "(Default: 0).\n"
-          "\t--led-%sshow-refresh        : %show refresh rate.\n"
-          "\t--led-limit-refresh=<Hz>  : Limit refresh rate to this frequency in Hz. Useful to keep a\n"
-          "\t                            constant refresh rate on loaded system. 0=no limit. Default: %d\n"
-          "\t--led-%sinverse             "
-          ": Switch if your matrix has inverse colors %s.\n"
-          "\t--led-rgb-sequence        : Switch if your matrix has led colors "
-          "swapped (Default: \"RGB\")\n"
-          "\t--led-pwm-lsb-nanoseconds : PWM Nanoseconds for LSB "
-          "(Default: %d)\n"
-          "\t--led-pwm-dither-bits=<0..2> : Time dithering of lower bits "
-          "(Default: 0)\n"
-          "\t--led-%shardware-pulse   : %sse hardware pin-pulse generation.\n"
-          "\t--led-panel-type=<name>   : Needed to initialize special panels. Supported: 'FM6126A', 'FM6127'\n",
-          d.hardware_mapping,
-          d.rows, d.cols, d.chain_length, d.parallel,
-          (int) muxers.size(), CreateAvailableMultiplexString(muxers).c_str(),
-          available_mappers.c_str(),
-          internal::Framebuffer::kBitPlanes, d.pwm_bits,
-          d.brightness, d.scan_mode,
-          d.show_refresh_rate ? "no-" : "", d.show_refresh_rate ? "Don't s" : "S",
-          d.limit_refresh_rate_hz,
-          d.inverse_colors ? "no-" : "",    d.inverse_colors ? "off" : "on",
-          d.pwm_lsb_nanoseconds,
-          !d.disable_hardware_pulsing ? "no-" : "",
-          !d.disable_hardware_pulsing ? "Don't u" : "U");
+      "(Default: %d).\n"
+      "\t--led-multiplexing=<0..%d> : Mux type: 0=direct; %s (Default: 0)\n"
+      "\t--led-pixel-mapper        : Semicolon-separated list of pixel-mappers "
+      "to arrange pixels.\n"
+      "\t                            Optional params after a colon e.g. "
+      "\"U-mapper;Rotate:90\"\n"
+      "\t                            Available: %s. Default: \"\"\n"
+      "\t--led-pwm-bits=<1..%d>    : PWM bits (Default: %d).\n"
+      "\t--led-brightness=<percent>: Brightness in percent (Default: %d).\n"
+      "\t--led-scan-mode=<0..1>    : 0 = progressive; 1 = interlaced "
+      "(Default: %d).\n"
+      "\t--led-row-addr-type=<0..4>: 0 = default; 1 = AB-addressed panels; 2 = "
+      "direct row select; 3 = ABC-addressed panels; 4 = ABC Shift + DE direct "
+      "(Default: 0).\n"
+      "\t--led-%sshow-refresh        : %show refresh rate.\n"
+      "\t--led-limit-refresh=<Hz>  : Limit refresh rate to this frequency in "
+      "Hz. Useful to keep a\n"
+      "\t                            constant refresh rate on loaded system. "
+      "0=no limit. Default: %d\n"
+      "\t--led-%sinverse             "
+      ": Switch if your matrix has inverse colors %s.\n"
+      "\t--led-rgb-sequence        : Switch if your matrix has led colors "
+      "swapped (Default: \"RGB\")\n"
+      "\t--led-pwm-lsb-nanoseconds : PWM Nanoseconds for LSB "
+      "(Default: %d)\n"
+      "\t--led-pwm-dither-bits=<0..2> : Time dithering of lower bits "
+      "(Default: 0)\n"
+      "\t--led-%shardware-pulse   : %sse hardware pin-pulse generation.\n"
+      "\t--led-panel-type=<name>   : Needed to initialize special panels. "
+      "Supported: 'FM6126A', 'FM6127'\n",
+      d.hardware_mapping, d.rows, d.cols, d.chain_length, d.parallel,
+      (int)muxers.size(), CreateAvailableMultiplexString(muxers).c_str(),
+      available_mappers.c_str(), internal::Framebuffer::kBitPlanes, d.pwm_bits,
+      d.brightness, d.scan_mode, d.show_refresh_rate ? "no-" : "",
+      d.show_refresh_rate ? "Don't s" : "S", d.limit_refresh_rate_hz,
+      d.inverse_colors ? "no-" : "", d.inverse_colors ? "off" : "on",
+      d.pwm_lsb_nanoseconds, !d.disable_hardware_pulsing ? "no-" : "",
+      !d.disable_hardware_pulsing ? "Don't u" : "U");
 
-  fprintf(out, "\t--led-slowdown-gpio=<0..4>: "
+  fprintf(out,
+          "\t--led-slowdown-gpio=<0..4>: "
           "Slowdown GPIO. Needed for faster Pis/slower panels "
-          "(Default: %d (2 on Pi4, 1 other)).\n", r.gpio_slowdown);
+          "(Default: %d (2 on Pi4, 1 other)).\n",
+          r.gpio_slowdown);
   if (r.daemon >= 0) {
     const bool on = (r.daemon > 0);
     fprintf(out,
@@ -368,10 +373,12 @@ void PrintMatrixFlags(FILE *out, const RGBMatrix::Options &d,
             "\t--led-%sdrop-privs       : %srop privileges from 'root' "
             "after initializing the hardware.\n",
             on ? "no-" : "", on ? "Don't d" : "D");
-    fprintf(out, "\t--led-drop-priv-user      : "
+    fprintf(out,
+            "\t--led-drop-priv-user      : "
             "Drop privileges to this username or UID (Default: '%s')\n",
             r.drop_priv_user);
-    fprintf(out, "\t--led-drop-priv-group     : "
+    fprintf(out,
+            "\t--led-drop-priv-group     : "
             "Drop privileges to this groupname or GID (Default: '%s')\n",
             r.drop_priv_group);
   }
@@ -398,16 +405,18 @@ bool RGBMatrix::Options::Validate(std::string *err_in) const {
     success = false;
   }
 
-  const internal::MuxMapperList &muxers
-    = internal::GetRegisteredMultiplexMappers();
+  const internal::MuxMapperList &muxers =
+      internal::GetRegisteredMultiplexMappers();
   if (multiplexing < 0 || multiplexing > (int)muxers.size()) {
     err->append("Multiplexing can only be one of 0=normal; ")
-      .append(CreateAvailableMultiplexString(muxers));
+        .append(CreateAvailableMultiplexString(muxers));
     success = false;
   }
 
   if (row_address_type < 0 || row_address_type > 4) {
-    err->append("Row address type values can be 0 (default), 1 (AB addressing), 2 (direct row select), 3 (ABC address), 4 (ABC Shift + DE direct).\n");
+    err->append(
+        "Row address type values can be 0 (default), 1 (AB addressing), 2 "
+        "(direct row select), 3 (ABC address), 4 (ABC Shift + DE direct).\n");
     success = false;
   }
 
@@ -458,9 +467,9 @@ bool RGBMatrix::Options::Validate(std::string *err_in) const {
     err->append("led-sequence needs to be three characters long.\n");
     success = false;
   } else {
-    if ((!strchr(led_rgb_sequence, 'R') && !strchr(led_rgb_sequence, 'r'))
-        || (!strchr(led_rgb_sequence, 'G') && !strchr(led_rgb_sequence, 'g'))
-        || (!strchr(led_rgb_sequence, 'B') && !strchr(led_rgb_sequence, 'b'))) {
+    if ((!strchr(led_rgb_sequence, 'R') && !strchr(led_rgb_sequence, 'r')) ||
+        (!strchr(led_rgb_sequence, 'G') && !strchr(led_rgb_sequence, 'g')) ||
+        (!strchr(led_rgb_sequence, 'B') && !strchr(led_rgb_sequence, 'b'))) {
       err->append("led-sequence needs to contain all of letters 'R', 'G' "
                   "and 'B'\n");
       success = false;
@@ -475,4 +484,4 @@ bool RGBMatrix::Options::Validate(std::string *err_in) const {
   return success;
 }
 
-}  // namespace rgb_matrix
+} // namespace rgb_matrix

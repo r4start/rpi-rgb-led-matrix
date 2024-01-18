@@ -19,9 +19,9 @@
 // Then compile with
 // $ make led-image-viewer
 
+#include "content-streamer.h"
 #include "led-matrix.h"
 #include "pixel-mapper.h"
-#include "content-streamer.h"
 
 #include <fcntl.h>
 #include <math.h>
@@ -48,28 +48,27 @@ using rgb_matrix::RGBMatrix;
 using rgb_matrix::StreamReader;
 
 typedef int64_t tmillis_t;
-static const tmillis_t distant_future = (1LL<<40); // that is a while.
+static const tmillis_t distant_future = (1LL << 40); // that is a while.
 
 struct ImageParams {
-  ImageParams() : anim_duration_ms(distant_future), wait_ms(1500),
-                  anim_delay_ms(-1), loops(-1), vsync_multiple(1) {}
-  tmillis_t anim_duration_ms;  // If this is an animation, duration to show.
-  tmillis_t wait_ms;           // Regular image: duration to show.
-  tmillis_t anim_delay_ms;     // Animation delay override.
+  ImageParams()
+      : anim_duration_ms(distant_future), wait_ms(1500), anim_delay_ms(-1),
+        loops(-1), vsync_multiple(1) {}
+  tmillis_t anim_duration_ms; // If this is an animation, duration to show.
+  tmillis_t wait_ms;          // Regular image: duration to show.
+  tmillis_t anim_delay_ms;    // Animation delay override.
   int loops;
   int vsync_multiple;
 };
 
 struct FileInfo {
-  ImageParams params;      // Each file might have specific timing settings
+  ImageParams params; // Each file might have specific timing settings
   bool is_multi_frame;
   rgb_matrix::StreamIO *content_stream;
 };
 
 volatile bool interrupt_received = false;
-static void InterruptHandler(int signo) {
-  interrupt_received = true;
-}
+static void InterruptHandler(int signo) { interrupt_received = true; }
 
 static tmillis_t GetTimeInMillis() {
   struct timeval tp;
@@ -78,7 +77,8 @@ static tmillis_t GetTimeInMillis() {
 }
 
 static void SleepMillis(tmillis_t milli_seconds) {
-  if (milli_seconds <= 0) return;
+  if (milli_seconds <= 0)
+    return;
   struct timespec ts;
   ts.tv_sec = milli_seconds / 1000;
   ts.tv_nsec = (milli_seconds % 1000) * 1000000;
@@ -86,8 +86,7 @@ static void SleepMillis(tmillis_t milli_seconds) {
 }
 
 static void StoreInStream(const Magick::Image &img, int delay_time_us,
-                          bool do_center,
-                          rgb_matrix::FrameCanvas *scratch,
+                          bool do_center, rgb_matrix::FrameCanvas *scratch,
                           rgb_matrix::StreamWriter *output) {
   scratch->Clear();
   const int x_offset = do_center ? (scratch->width() - img.columns()) / 2 : 0;
@@ -106,8 +105,7 @@ static void StoreInStream(const Magick::Image &img, int delay_time_us,
   output->Stream(*scratch, delay_time_us);
 }
 
-static void CopyStream(rgb_matrix::StreamReader *r,
-                       rgb_matrix::StreamWriter *w,
+static void CopyStream(rgb_matrix::StreamReader *r, rgb_matrix::StreamWriter *w,
                        rgb_matrix::FrameCanvas *scratch) {
   uint32_t delay_us;
   while (r->GetNext(scratch, &delay_us)) {
@@ -117,16 +115,17 @@ static void CopyStream(rgb_matrix::StreamReader *r,
 
 // Load still image or animation.
 // Scale, so that it fits in "width" and "height" and store in "result".
-static bool LoadImageAndScale(const char *filename,
-                              int target_width, int target_height,
-                              bool fill_width, bool fill_height,
+static bool LoadImageAndScale(const char *filename, int target_width,
+                              int target_height, bool fill_width,
+                              bool fill_height,
                               std::vector<Magick::Image> *result,
                               std::string *err_msg) {
   std::vector<Magick::Image> frames;
   try {
     readImages(&frames, filename);
-  } catch (std::exception& e) {
-    if (e.what()) *err_msg = e.what();
+  } catch (std::exception &e) {
+    if (e.what())
+      *err_msg = e.what();
     return false;
   }
   if (frames.size() == 0) {
@@ -139,7 +138,7 @@ static bool LoadImageAndScale(const char *filename,
   if (frames.size() > 1) {
     Magick::coalesceImages(result, frames.begin(), frames.end());
   } else {
-    result->push_back(frames[0]);   // just a single still image.
+    result->push_back(frames[0]); // just a single still image.
   }
 
   const int img_width = (*result)[0].columns();
@@ -149,21 +148,18 @@ static bool LoadImageAndScale(const char *filename,
   if (fill_width && fill_height) {
     // Scrolling diagonally. Fill as much as we can get in available space.
     // Largest scale fraction determines that.
-    const float larger_fraction = (width_fraction > height_fraction)
-      ? width_fraction
-      : height_fraction;
-    target_width = (int) roundf(larger_fraction * img_width);
-    target_height = (int) roundf(larger_fraction * img_height);
-  }
-  else if (fill_height) {
+    const float larger_fraction =
+        (width_fraction > height_fraction) ? width_fraction : height_fraction;
+    target_width = (int)roundf(larger_fraction * img_width);
+    target_height = (int)roundf(larger_fraction * img_height);
+  } else if (fill_height) {
     // Horizontal scrolling: Make things fit in vertical space.
     // While the height constraint stays the same, we can expand to full
     // width as we scroll along that axis.
-    target_width = (int) roundf(height_fraction * img_width);
-  }
-  else if (fill_width) {
+    target_width = (int)roundf(height_fraction * img_width);
+  } else if (fill_width) {
     // dito, vertical. Make things fit in horizontal space.
-    target_height = (int) roundf(width_fraction * img_height);
+    target_height = (int)roundf(width_fraction * img_height);
   }
 
   for (size_t i = 0; i < result->size(); ++i) {
@@ -173,28 +169,26 @@ static bool LoadImageAndScale(const char *filename,
   return true;
 }
 
-void DisplayAnimation(const FileInfo *file,
-                      RGBMatrix *matrix, FrameCanvas *offscreen_canvas) {
-  const tmillis_t duration_ms = (file->is_multi_frame
-                                 ? file->params.anim_duration_ms
-                                 : file->params.wait_ms);
+void DisplayAnimation(const FileInfo *file, RGBMatrix *matrix,
+                      FrameCanvas *offscreen_canvas) {
+  const tmillis_t duration_ms =
+      (file->is_multi_frame ? file->params.anim_duration_ms
+                            : file->params.wait_ms);
   rgb_matrix::StreamReader reader(file->content_stream);
   int loops = file->params.loops;
   const tmillis_t end_time_ms = GetTimeInMillis() + duration_ms;
   const tmillis_t override_anim_delay = file->params.anim_delay_ms;
-  for (int k = 0;
-       (loops < 0 || k < loops)
-         && !interrupt_received
-         && GetTimeInMillis() < end_time_ms;
+  for (int k = 0; (loops < 0 || k < loops) && !interrupt_received &&
+                  GetTimeInMillis() < end_time_ms;
        ++k) {
     uint32_t delay_us = 0;
-    while (!interrupt_received && GetTimeInMillis() <= end_time_ms
-           && reader.GetNext(offscreen_canvas, &delay_us)) {
+    while (!interrupt_received && GetTimeInMillis() <= end_time_ms &&
+           reader.GetNext(offscreen_canvas, &delay_us)) {
       const tmillis_t anim_delay_ms =
-        override_anim_delay >= 0 ? override_anim_delay : delay_us / 1000;
+          override_anim_delay >= 0 ? override_anim_delay : delay_us / 1000;
       const tmillis_t start_wait_ms = GetTimeInMillis();
-      offscreen_canvas = matrix->SwapOnVSync(offscreen_canvas,
-                                             file->params.vsync_multiple);
+      offscreen_canvas =
+          matrix->SwapOnVSync(offscreen_canvas, file->params.vsync_multiple);
       const tmillis_t time_already_spent = GetTimeInMillis() - start_wait_ms;
       SleepMillis(anim_delay_ms - time_already_spent);
     }
@@ -206,40 +200,45 @@ static int usage(const char *progname) {
   fprintf(stderr, "usage: %s [options] <image> [option] [<image> ...]\n",
           progname);
 
-  fprintf(stderr, "Options:\n"
-          "\t-O<streamfile>            : Output to stream-file instead of matrix (Don't need to be root).\n"
-          "\t-C                        : Center images.\n"
+  fprintf(
+      stderr,
+      "Options:\n"
+      "\t-O<streamfile>            : Output to stream-file instead of matrix "
+      "(Don't need to be root).\n"
+      "\t-C                        : Center images.\n"
 
-          "\nThese options affect images FOLLOWING them on the command line,\n"
-          "so it is possible to have different options for each image\n"
-          "\t-w<seconds>               : Regular image: "
-          "Wait time in seconds before next image is shown (default: 1.5).\n"
-          "\t-t<seconds>               : "
-          "For animations: stop after this time.\n"
-          "\t-l<loop-count>            : "
-          "For animations: number of loops through a full cycle.\n"
-          "\t-D<animation-delay-ms>    : "
-          "For animations: override the delay between frames given in the\n"
-          "\t                            gif/stream animation with this value. Use -1 to use default value.\n"
-          "\t-V<vsync-multiple>        : For animation (expert): Only do frame vsync-swaps on multiples of refresh (default: 1)\n"
-          "\t                            (Tip: use --led-limit-refresh for stable rate)\n"
+      "\nThese options affect images FOLLOWING them on the command line,\n"
+      "so it is possible to have different options for each image\n"
+      "\t-w<seconds>               : Regular image: "
+      "Wait time in seconds before next image is shown (default: 1.5).\n"
+      "\t-t<seconds>               : "
+      "For animations: stop after this time.\n"
+      "\t-l<loop-count>            : "
+      "For animations: number of loops through a full cycle.\n"
+      "\t-D<animation-delay-ms>    : "
+      "For animations: override the delay between frames given in the\n"
+      "\t                            gif/stream animation with this value. Use "
+      "-1 to use default value.\n"
+      "\t-V<vsync-multiple>        : For animation (expert): Only do frame "
+      "vsync-swaps on multiples of refresh (default: 1)\n"
+      "\t                            (Tip: use --led-limit-refresh for stable "
+      "rate)\n"
 
-          "\nOptions affecting display of multiple images:\n"
-          "\t-f                        : "
-          "Forever cycle through the list of files on the command line.\n"
-          "\t-s                        : If multiple images are given: shuffle.\n"
-          );
+      "\nOptions affecting display of multiple images:\n"
+      "\t-f                        : "
+      "Forever cycle through the list of files on the command line.\n"
+      "\t-s                        : If multiple images are given: shuffle.\n");
 
   fprintf(stderr, "\nGeneral LED matrix options:\n");
   rgb_matrix::PrintMatrixFlags(stderr);
 
-  fprintf(stderr,
-          "\nSwitch time between files: "
-          "-w for static images; -t/-l for animations\n"
-          "Animated gifs: If both -l and -t are given, "
-          "whatever finishes first determines duration.\n");
+  fprintf(stderr, "\nSwitch time between files: "
+                  "-w for static images; -t/-l for animations\n"
+                  "Animated gifs: If both -l and -t are given, "
+                  "whatever finishes first determines duration.\n");
 
-  fprintf(stderr, "\nThe -w, -t and -l options apply to the following images "
+  fprintf(stderr,
+          "\nThe -w, -t and -l options apply to the following images "
           "until a new instance of one of these options is seen.\n"
           "So you can choose different durations for different images.\n");
 
@@ -256,8 +255,8 @@ int main(int argc, char *argv[]) {
   // files as that user).
   runtime_opt.drop_priv_user = getenv("SUDO_UID");
   runtime_opt.drop_priv_group = getenv("SUDO_GID");
-  if (!rgb_matrix::ParseOptionsFromFlags(&argc, &argv,
-                                         &matrix_options, &runtime_opt)) {
+  if (!rgb_matrix::ParseOptionsFromFlags(&argc, &argv, &matrix_options,
+                                         &runtime_opt)) {
     return usage(argv[0]);
   }
 
@@ -320,12 +319,16 @@ int main(int argc, char *argv[]) {
       matrix_options.parallel = atoi(optarg);
       break;
     case 'L':
-      fprintf(stderr, "-L is deprecated. Use\n\t--led-pixel-mapper=\"U-mapper\" --led-chain=4\ninstead.\n");
+      fprintf(stderr,
+              "-L is deprecated. Use\n\t--led-pixel-mapper=\"U-mapper\" "
+              "--led-chain=4\ninstead.\n");
       return 1;
       break;
     case 'R':
-      fprintf(stderr, "-R is deprecated. "
-              "Use --led-pixel-mapper=\"Rotate:%s\" instead.\n", optarg);
+      fprintf(stderr,
+              "-R is deprecated. "
+              "Use --led-pixel-mapper=\"Rotate:%s\" instead.\n",
+              optarg);
       return 1;
       break;
     case 'O':
@@ -333,7 +336,8 @@ int main(int argc, char *argv[]) {
       break;
     case 'V':
       img_param.vsync_multiple = atoi(optarg);
-      if (img_param.vsync_multiple < 1) img_param.vsync_multiple = 1;
+      if (img_param.vsync_multiple < 1)
+        img_param.vsync_multiple = 1;
       break;
     case 'h':
     default:
@@ -361,8 +365,8 @@ int main(int argc, char *argv[]) {
 
   FrameCanvas *offscreen_canvas = matrix->CreateFrameCanvas();
 
-  printf("Size: %dx%d. Hardware gpio mapping: %s\n",
-         matrix->width(), matrix->height(), matrix_options.hardware_mapping);
+  printf("Size: %dx%d. Hardware gpio mapping: %s\n", matrix->width(),
+         matrix->height(), matrix_options.hardware_mapping);
 
   // These parameters are needed once we do scrolling.
   const bool fill_width = false;
@@ -372,7 +376,7 @@ int main(int argc, char *argv[]) {
   rgb_matrix::StreamIO *stream_io = NULL;
   rgb_matrix::StreamWriter *global_stream_writer = NULL;
   if (stream_output) {
-    int fd = open(stream_output, O_CREAT|O_WRONLY, 0644);
+    int fd = open(stream_output, O_CREAT | O_WRONLY, 0644);
     if (fd < 0) {
       perror("Couldn't open output stream");
       return 1;
@@ -385,7 +389,7 @@ int main(int argc, char *argv[]) {
   fprintf(stderr, "Loading %d files...\n", argc - optind);
   // Preparing all the images beforehand as the Pi might be too slow to
   // be quickly switching between these. So preprocess.
-  std::vector<FileInfo*> file_imgs;
+  std::vector<FileInfo *> file_imgs;
   for (int imgarg = optind; imgarg < argc; ++imgarg) {
     const char *filename = argv[imgarg];
     FileInfo *file_info = NULL;
@@ -405,9 +409,10 @@ int main(int argc, char *argv[]) {
         if (file_info->is_multi_frame) {
           delay_time_us = img.animationDelay() * 10000; // unit in 1/100s
         } else {
-          delay_time_us = file_info->params.wait_ms * 1000;  // single image.
+          delay_time_us = file_info->params.wait_ms * 1000; // single image.
         }
-        if (delay_time_us <= 0) delay_time_us = 100 * 1000;  // 1/10sec
+        if (delay_time_us <= 0)
+          delay_time_us = 100 * 1000; // 1/10sec
         StoreInStream(img, delay_time_us, do_center, offscreen_canvas,
                       global_stream_writer ? global_stream_writer : &out);
       }
@@ -419,7 +424,7 @@ int main(int argc, char *argv[]) {
         file_info->params = filename_params[filename];
         file_info->content_stream = new rgb_matrix::FileStreamIO(fd);
         StreamReader reader(file_info->content_stream);
-        if (reader.GetNext(offscreen_canvas, NULL)) {  // header+size ok
+        if (reader.GetNext(offscreen_canvas, NULL)) { // header+size ok
           file_info->is_multi_frame = reader.GetNext(offscreen_canvas, NULL);
           reader.Rewind();
           if (global_stream_writer) {
@@ -431,8 +436,7 @@ int main(int argc, char *argv[]) {
           delete file_info;
           file_info = NULL;
         }
-      }
-      else {
+      } else {
         perror("Opening file");
       }
     }
@@ -440,8 +444,8 @@ int main(int argc, char *argv[]) {
     if (file_info) {
       file_imgs.push_back(file_info);
     } else {
-      fprintf(stderr, "%s skipped: Unable to open (%s)\n",
-              filename, err_msg.c_str());
+      fprintf(stderr, "%s skipped: Unable to open (%s)\n", filename,
+              err_msg.c_str());
     }
   }
 
@@ -449,13 +453,19 @@ int main(int argc, char *argv[]) {
     delete global_stream_writer;
     delete stream_io;
     if (file_imgs.size()) {
-      fprintf(stderr, "Done: Output to stream %s; "
-              "this can now be opened with led-image-viewer with the exact same panel configuration settings such as rows, chain, parallel and hardware-mapping\n", stream_output);
+      fprintf(stderr,
+              "Done: Output to stream %s; "
+              "this can now be opened with led-image-viewer with the exact "
+              "same panel configuration settings such as rows, chain, parallel "
+              "and hardware-mapping\n",
+              stream_output);
     }
     if (do_shuffle)
-      fprintf(stderr, "Note: -s (shuffle) does not have an effect when generating streams.\n");
+      fprintf(stderr, "Note: -s (shuffle) does not have an effect when "
+                      "generating streams.\n");
     if (do_forever)
-      fprintf(stderr, "Note: -f (forever) does not have an effect when generating streams.\n");
+      fprintf(stderr, "Note: -f (forever) does not have an effect when "
+                      "generating streams.\n");
     // Done, no actual output to matrix.
     return 0;
   }

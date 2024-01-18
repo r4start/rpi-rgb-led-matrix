@@ -12,9 +12,9 @@
 // write such animations to disk. It is also used in util/video-viewer.cc
 // to write a version to disk that then can be played with the led-image-viewer.
 
-#include <stddef.h>
-#include <stdint.h>
-#include <stdlib.h>
+#include <cstddef>
+#include <cstdint>
+#include <cstdlib>
 #include <sys/types.h>
 
 #include <string>
@@ -58,7 +58,7 @@ public:
   virtual ssize_t Append(const void *buf, size_t count);
 
 private:
-  std::string buffer_;  // super simplistic.
+  std::string buffer_; // super simplistic.
   size_t pos_;
 };
 
@@ -89,7 +89,7 @@ public:
 
   // Get next frame and its timestamp. Returns 'false' if there is an error
   // or end of stream reached..
-  bool GetNext(FrameCanvas *frame, uint32_t* hold_time_us);
+  bool GetNext(FrameCanvas *frame, uint32_t *hold_time_us);
 
 private:
   enum State {
@@ -105,4 +105,4 @@ private:
 
   char *header_frame_buffer_;
 };
-}
+} // namespace rgb_matrix

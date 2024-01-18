@@ -20,20 +20,20 @@
 #ifndef RPI_RGBMATRIX_H
 #define RPI_RGBMATRIX_H
 
-#include <stdint.h>
-#include <stddef.h>
+#include <cstddef>
+#include <cstdint>
 
 #include <string>
 #include <vector>
 
 #include "canvas.h"
-#include "thread.h"
-#include "pixel-mapper.h"
 #include "graphics.h"
+#include "pixel-mapper.h"
+#include "thread.h"
 
 namespace rgb_matrix {
 class RGBMatrix;
-class FrameCanvas;   // Canvas for Double- and Multibuffering
+class FrameCanvas; // Canvas for Double- and Multibuffering
 struct RuntimeOptions;
 
 // The RGB matrix provides the framebuffer and the facilities to constantly
@@ -53,7 +53,7 @@ public:
   // Options to initialize the RGBMatrix. Also see the main README.md for
   // detailed descriptions of the command line flags.
   struct Options {
-    Options();   // Creates a default option set.
+    Options(); // Creates a default option set.
 
     // Validate the options and possibly output a message to string. If
     // "err" is NULL, outputs validation problems to stderr.
@@ -117,7 +117,7 @@ public:
     // Default row address type is 0, corresponding to direct setting of the
     // row, while row address type 1 is used for panels that only have A/B,
     // typically some 64x64 panels
-    int row_address_type;  // Flag --led-row-addr-type
+    int row_address_type; // Flag --led-row-addr-type
 
     // Type of multiplexing. 0 = direct, 1 = stripe, 2 = checker,...
     // Flag: --led-multiplexing
@@ -129,32 +129,32 @@ public:
     // sound system.
     // This won't do anything if output enable is not connected to GPIO 18 in
     // non-standard wirings.
-    bool disable_hardware_pulsing;     // Flag: --led-hardware-pulse
+    bool disable_hardware_pulsing; // Flag: --led-hardware-pulse
 
     // Show refresh rate on the terminal for debugging and tweaking purposes.
-    bool show_refresh_rate;            // Flag: --led-show-refresh
+    bool show_refresh_rate; // Flag: --led-show-refresh
 
     // Some panels have inversed colors.
-    bool inverse_colors;                // Flag: --led-inverse
+    bool inverse_colors; // Flag: --led-inverse
 
     // In case the internal sequence of mapping is not "RGB", this contains the
     // real mapping. Some panels mix up these colors. String of length three
     // which has to contain all characters R, G and B.
-    const char *led_rgb_sequence;  // Flag: --led-rgb-sequence
+    const char *led_rgb_sequence; // Flag: --led-rgb-sequence
 
     // A string describing a sequence of pixel mappers that should be applied
     // to this matrix. A semicolon-separated list of pixel-mappers with optional
     // parameter.
-    const char *pixel_mapper_config;   // Flag: --led-pixel-mapper
+    const char *pixel_mapper_config; // Flag: --led-pixel-mapper
 
     // Panel type. Typically an empty string or NULL, but some panels need
     // a particular initialization sequence, so this is used for that.
     // This can be e.g. "FM6126A" for that particular panel type.
-    const char *panel_type;  // Flag: --led-panel-type
+    const char *panel_type; // Flag: --led-panel-type
 
     // Limit refresh rate of LED panel. This will help on a loaded system
     // to keep a constant refresh rate. <= 0 for no limit.
-    int limit_refresh_rate_hz;   // Flag: --led-limit-refresh
+    int limit_refresh_rate_hz; // Flag: --led-limit-refresh
   };
 
   // Factory to create a matrix. Additional functionality includes dropping
@@ -195,8 +195,7 @@ public:
   // Prefer using a FrameCanvas and do double-buffering, see section below.
   virtual int width() const;
   virtual int height() const;
-  virtual void SetPixel(int x, int y,
-                        uint8_t red, uint8_t green, uint8_t blue);
+  virtual void SetPixel(int x, int y, uint8_t red, uint8_t green, uint8_t blue);
   virtual void Clear();
   virtual void Fill(uint8_t red, uint8_t green, uint8_t blue);
 
@@ -255,7 +254,7 @@ public:
   // This sets the PWM bits for the current active FrameCanvas and future
   // ones that are created with CreateFrameCanvas().
   bool SetPWMBits(uint8_t value);
-  uint8_t pwmbits();   // return the pwm-bits of the currently active buffer.
+  uint8_t pwmbits(); // return the pwm-bits of the currently active buffer.
 
   // Map brightness of output linearly to input with CIE1931 profile.
   void set_luminance_correct(bool on);
@@ -376,18 +375,16 @@ public:
   // -- Canvas interface.
   virtual int width() const;
   virtual int height() const;
-  virtual void SetPixel(int x, int y,
-                        uint8_t red, uint8_t green, uint8_t blue);
-  virtual void SetPixels(int x, int y, int width, int height,
-                         Color *colors);
+  virtual void SetPixel(int x, int y, uint8_t red, uint8_t green, uint8_t blue);
+  virtual void SetPixels(int x, int y, int width, int height, Color *colors);
   virtual void Clear();
   virtual void Fill(uint8_t red, uint8_t green, uint8_t blue);
 
 private:
   friend class RGBMatrix;
 
-  FrameCanvas(internal::Framebuffer *frame) : frame_(frame){}
-  virtual ~FrameCanvas();   // Any FrameCanvas is owned by RGBMatrix.
+  FrameCanvas(internal::Framebuffer *frame) : frame_(frame) {}
+  virtual ~FrameCanvas(); // Any FrameCanvas is owned by RGBMatrix.
   internal::Framebuffer *framebuffer() { return frame_; }
 
   internal::Framebuffer *const frame_;
@@ -398,7 +395,7 @@ private:
 struct RuntimeOptions {
   RuntimeOptions();
 
-  int gpio_slowdown;    // 0 = no slowdown.    Flag: --led-slowdown-gpio
+  int gpio_slowdown; // 0 = no slowdown.    Flag: --led-slowdown-gpio
 
   // ----------
   // If the following options are set to disabled with -1, they are not
@@ -417,13 +414,13 @@ struct RuntimeOptions {
   // after the call (which requires that no threads have been started yet).
   // In the other cases (off or on), the choice is already made, so the
   // thread is conveniently already started for you.
-  int daemon;           // -1 disabled. 0=off, 1=on. Flag: --led-daemon
+  int daemon; // -1 disabled. 0=off, 1=on. Flag: --led-daemon
 
   // Drop privileges from 'root' to drop_priv_user/group once the hardware is
   // initialized.
   // This is usually a good idea unless you need to stay on elevated privs.
   // -1, 0, 1 similar meaning to 'daemon' above.
-  int drop_privileges;  // -1 disabled. 0=off, 1=on. flag: --led-drop-privs
+  int drop_privileges; // -1 disabled. 0=off, 1=on. flag: --led-drop-privs
 
   // By default, the gpio is initialized for you, but if you run on a platform
   // not the Raspberry Pi, this will fail. If you don't need to access GPIO
@@ -454,9 +451,8 @@ int main(int argc, char **argv) {
   led_options.chain_length = 3;
   led_options.show_refresh_rate = true;
   runtime.drop_privileges = 1;
-  if (!rgb_matrix::ParseOptionsFromFlags(&argc, &argv, &led_options, &runtime)) {
-    rgb_matrix::PrintMatrixFlags(stderr);
-    return 1;
+  if (!rgb_matrix::ParseOptionsFromFlags(&argc, &argv, &led_options, &runtime))
+{ rgb_matrix::PrintMatrixFlags(stderr); return 1;
   }
 
   // Do your own command line handling with the remaining flags.
@@ -493,22 +489,21 @@ void PrintMatrixFlags(FILE *out,
                       const RuntimeOptions &rt_opt = RuntimeOptions());
 
 // Legacy version of RGBMatrix::CreateFromOptions()
-inline RGBMatrix *CreateMatrixFromOptions(
-  const RGBMatrix::Options &options,
-  const RuntimeOptions &runtime_options) {
+inline RGBMatrix *
+CreateMatrixFromOptions(const RGBMatrix::Options &options,
+                        const RuntimeOptions &runtime_options) {
   return RGBMatrix::CreateFromOptions(options, runtime_options);
 }
 
 // Legacy version of RGBMatrix::CreateFromFlags()
-inline RGBMatrix *CreateMatrixFromFlags(
-  int *argc, char ***argv,
-  RGBMatrix::Options *default_options = NULL,
-  RuntimeOptions *default_runtime_opts = NULL,
-  bool remove_consumed_flags = true) {
-  return RGBMatrix::CreateFromFlags(argc, argv,
-                                    default_options, default_runtime_opts,
-                                    remove_consumed_flags);
+inline RGBMatrix *
+CreateMatrixFromFlags(int *argc, char ***argv,
+                      RGBMatrix::Options *default_options = NULL,
+                      RuntimeOptions *default_runtime_opts = NULL,
+                      bool remove_consumed_flags = true) {
+  return RGBMatrix::CreateFromFlags(
+      argc, argv, default_options, default_runtime_opts, remove_consumed_flags);
 }
 
-}  // end namespace rgb_matrix
-#endif  // RPI_RGBMATRIX_H
+} // end namespace rgb_matrix
+#endif // RPI_RGBMATRIX_H

@@ -15,7 +15,7 @@
 
 #ifndef RPI_CANVAS_H
 #define RPI_CANVAS_H
-#include <stdint.h>
+#include <cstdint>
 
 namespace rgb_matrix {
 // An interface for things a Canvas can do. The RGBMatrix implements this
@@ -38,8 +38,8 @@ public:
   // Set pixel at coordinate (x,y) with given color. Pixel (0,0) is the
   // top left corner.
   // Each color is 8 bit (24bpp), 0 black, 255 brightest.
-  virtual void SetPixel(int x, int y,
-                        uint8_t red, uint8_t green, uint8_t blue) = 0;
+  virtual void SetPixel(int x, int y, uint8_t red, uint8_t green,
+                        uint8_t blue) = 0;
 
   // Clear screen to be all black.
   virtual void Clear() = 0;
@@ -48,5 +48,5 @@ public:
   virtual void Fill(uint8_t red, uint8_t green, uint8_t blue) = 0;
 };
 
-}  // namespace rgb_matrix
-#endif  // RPI_CANVAS_H
+} // namespace rgb_matrix
+#endif // RPI_CANVAS_H

@@ -45,7 +45,8 @@ public:
 
   // Set the bits that are '1' in the output. Leave the rest untouched.
   inline void SetBits(gpio_bits_t value) {
-    if (!value) return;
+    if (!value)
+      return;
     WriteSetBits(value);
     for (int i = 0; i < slowdown_; ++i) {
       WriteSetBits(value);
@@ -54,14 +55,16 @@ public:
 
   // Clear the bits that are '1' in the output. Leave the rest untouched.
   inline void ClearBits(gpio_bits_t value) {
-    if (!value) return;
+    if (!value)
+      return;
     WriteClrBits(value);
     for (int i = 0; i < slowdown_; ++i) {
       WriteClrBits(value);
     }
   }
 
-  // Write all the bits of "value" mentioned in "mask". Leave the rest untouched.
+  // Write all the bits of "value" mentioned in "mask". Leave the rest
+  // untouched.
   inline void WriteMaskedBits(gpio_bits_t value, gpio_bits_t mask) {
     // Writing a word is two operations. The IO is actually pretty slow, so
     // this should probably  be unnoticable.
@@ -80,7 +83,7 @@ private:
 #ifdef ENABLE_WIDE_GPIO_COMPUTE_MODULE
             | (static_cast<gpio_bits_t>(*gpio_read_bits_low_) << 32)
 #endif
-            );
+    );
   }
 
   inline void WriteSetBits(gpio_bits_t value) {
@@ -144,6 +147,6 @@ public:
 // if possible and a terrible slow fallback otherwise.
 uint32_t GetMicrosecondCounter();
 
-}  // end namespace rgb_matrix
+} // end namespace rgb_matrix
 
-#endif  // RPI_GPIO_INGERNALH
+#endif // RPI_GPIO_INGERNALH

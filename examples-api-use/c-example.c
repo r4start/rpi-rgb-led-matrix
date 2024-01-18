@@ -33,8 +33,8 @@ int main(int argc, char **argv) {
 
   led_canvas_get_size(offscreen_canvas, &width, &height);
 
-  fprintf(stderr, "Size: %dx%d. Hardware gpio mapping: %s\n",
-          width, height, options.hardware_mapping);
+  fprintf(stderr, "Size: %dx%d. Hardware gpio mapping: %s\n", width, height,
+          options.hardware_mapping);
 
   for (i = 0; i < 1000; ++i) {
     for (y = 0; y < height; ++y) {

@@ -4,8 +4,8 @@
 // This code is public domain
 // (but note, that the led-matrix library this depends on is GPL v2)
 
-#include "led-matrix.h"
 #include "graphics.h"
+#include "led-matrix.h"
 
 #include <ctype.h>
 #include <getopt.h>
@@ -21,9 +21,7 @@
 using namespace rgb_matrix;
 
 volatile bool interrupt_received = false;
-static void InterruptHandler(int signo) {
-  interrupt_received = true;
-}
+static void InterruptHandler(int signo) { interrupt_received = true; }
 
 static void InteractiveUseMessage() {
   fprintf(stderr,
@@ -40,11 +38,13 @@ static int usage(const char *progname) {
   fprintf(stderr, "Display single pixel with any colour.\n");
   InteractiveUseMessage();
   fprintf(stderr, "Options:\n\n");
-  fprintf(stderr,
-          "\t-C <r,g,b>                : Color at front of trail. Default 255,255,0\n"
-          "\t-t <trail-len>            : Length of trail behind dot (default:0)\n"
-          "\t-c <r,g,b>                : Color at end of trail. Default 0,0,255\n\n"
-          );
+  fprintf(
+      stderr,
+      "\t-C <r,g,b>                : Color at front of trail. Default "
+      "255,255,0\n"
+      "\t-t <trail-len>            : Length of trail behind dot (default:0)\n"
+      "\t-c <r,g,b>                : Color at end of trail. Default "
+      "0,0,255\n\n");
   rgb_matrix::PrintMatrixFlags(stderr);
   return 1;
 }
@@ -73,12 +73,12 @@ static char getch() {
 
   char buf = 0;
   if (read(STDIN_FILENO, &buf, 1) < 0)
-    perror ("read()");
+    perror("read()");
 
   if (is_terminal) {
     // Back to original terminal settings.
     if (tcsetattr(0, TCSADRAIN, &old) < 0)
-      perror ("tcsetattr ~ICANON");
+      perror("tcsetattr ~ICANON");
   }
 
   return buf;
@@ -90,16 +90,16 @@ static uint8_t quantize(float c) {
 }
 static Color interpolate(const Color &c1, const Color &c2, float fraction) {
   float c2_fraction = 1 - fraction;
-  return { quantize(c1.r * fraction + c2.r * c2_fraction),
-           quantize(c1.g * fraction + c2.g * c2_fraction),
-           quantize(c1.b * fraction + c2.b * c2_fraction)};
+  return {quantize(c1.r * fraction + c2.r * c2_fraction),
+          quantize(c1.g * fraction + c2.g * c2_fraction),
+          quantize(c1.b * fraction + c2.b * c2_fraction)};
 }
 
 int main(int argc, char *argv[]) {
   RGBMatrix::Options matrix_options;
   rgb_matrix::RuntimeOptions runtime_opt;
-  if (!rgb_matrix::ParseOptionsFromFlags(&argc, &argv,
-                                         &matrix_options, &runtime_opt)) {
+  if (!rgb_matrix::ParseOptionsFromFlags(&argc, &argv, &matrix_options,
+                                         &runtime_opt)) {
     return usage(argv[0]);
   }
 
@@ -150,7 +150,7 @@ int main(int argc, char *argv[]) {
   while (!interrupt_received && running) {
     canvas->Clear();
     int distance_from_head = trail.size();
-    for (const auto &pos : trail) {   // Draw from tail -> head
+    for (const auto &pos : trail) { // Draw from tail -> head
       distance_from_head--;
       Color c = interpolate(front_color, back_color,
                             1.0 - 1.0f * distance_from_head / trail.size());
@@ -159,48 +159,51 @@ int main(int argc, char *argv[]) {
     canvas = matrix->SwapOnVSync(canvas);
 
     printf("%sX,Y = %d,%d%s",
-           output_is_terminal ? "\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b" : "",
-           x_pos, y_pos,
-           output_is_terminal ? " " : "\n");
+           output_is_terminal ? "\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b" : "", x_pos,
+           y_pos, output_is_terminal ? " " : "\n");
     fflush(stdout);
 
     const char c = tolower(getch());
     switch (c) {
-    case 'w': case 'k':   // Up
+    case 'w':
+    case 'k': // Up
       if (y_pos > 0) {
         y_pos--;
         trail.push_back({x_pos, y_pos});
       }
       break;
-    case 's': case 'j':  // Down
+    case 's':
+    case 'j': // Down
       if (y_pos < canvas->height() - 1) {
         y_pos++;
         trail.push_back({x_pos, y_pos});
       }
       break;
-    case 'a': case 'h':  // Left
+    case 'a':
+    case 'h': // Left
       if (x_pos > 0) {
         x_pos--;
         trail.push_back({x_pos, y_pos});
       }
       break;
-    case 'd': case 'l':  // Right
+    case 'd':
+    case 'l': // Right
       if (x_pos < canvas->width() - 1) {
         x_pos++;
         trail.push_back({x_pos, y_pos});
       }
       break;
       // All kinds of conditions which we use to exit
-    case 0x1B:           // Escape
-    case 'q':            // 'Q'uit
-    case 0x04:           // End of file
-    case 0x00:           // Other issue from getch()
+    case 0x1B: // Escape
+    case 'q':  // 'Q'uit
+    case 0x04: // End of file
+    case 0x00: // Other issue from getch()
       running = false;
       break;
     }
 
     while ((int)trail.size() > trail_len + 1)
-      trail.pop_front();   // items on front are the oldest dots
+      trail.pop_front(); // items on front are the oldest dots
   }
 
   // Finished. Shut down the RGB matrix.

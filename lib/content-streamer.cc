@@ -26,7 +26,7 @@ namespace {
 // on a different x86 Linux PC.
 static const uint32_t kFileMagicValue = 0xED0C5A48;
 struct FileHeader {
-  uint32_t magic;  // kFileMagicValue
+  uint32_t magic; // kFileMagicValue
   uint32_t buf_size;
   uint32_t width;
   uint32_t height;
@@ -38,15 +38,15 @@ STATIC_ASSERT(file_header_size_changed, sizeof(FileHeader) == 32);
 
 static const uint32_t kFrameMagicValue = 0x12345678;
 struct FrameHeader {
-  uint32_t magic;  // kFrameMagic
+  uint32_t magic; // kFrameMagic
   uint32_t size;
-  uint32_t hold_time_us;  // How long this frame lasts in usec.
+  uint32_t hold_time_us; // How long this frame lasts in usec.
   uint32_t future_use1;
   uint64_t future_use2;
   uint64_t future_use3;
 };
 STATIC_ASSERT(file_header_size_changed, sizeof(FrameHeader) == 32);
-}
+} // namespace
 
 FileStreamIO::FileStreamIO(int fd) : fd_(fd) {
   posix_fadvise(fd_, 0, 0, POSIX_FADV_SEQUENTIAL);
@@ -71,19 +71,22 @@ ssize_t MemStreamIO::Read(void *buf, size_t count) {
   return amount;
 }
 ssize_t MemStreamIO::Append(const void *buf, size_t count) {
-  buffer_.append((const char*)buf, count);
+  buffer_.append((const char *)buf, count);
   return count;
 }
 
 // Read exactly count bytes including retries. Returns success.
 static bool FullRead(StreamIO *io, void *buf, const size_t count) {
   int remaining = count;
-  char *char_buffer = (char*)buf;
+  char *char_buffer = (char *)buf;
   while (remaining > 0) {
     int r = io->Read(char_buffer, remaining);
-    if (r < 0) return false;
-    if (r == 0) break;  // EOF.
-    char_buffer += r; remaining -= r;
+    if (r < 0)
+      return false;
+    if (r == 0)
+      break; // EOF.
+    char_buffer += r;
+    remaining -= r;
   }
   return remaining == 0;
 }
@@ -91,11 +94,13 @@ static bool FullRead(StreamIO *io, void *buf, const size_t count) {
 // Write exactly count bytes including retries. Returns success.
 static bool FullAppend(StreamIO *io, const void *buf, const size_t count) {
   int remaining = count;
-  const char *char_buffer = (const char*) buf;
+  const char *char_buffer = (const char *)buf;
   while (remaining > 0) {
     int w = io->Append(char_buffer, remaining);
-    if (w < 0) return false;
-    char_buffer += w; remaining -= w;
+    if (w < 0)
+      return false;
+    char_buffer += w;
+    remaining -= w;
   }
   return remaining == 0;
 }
@@ -129,19 +134,21 @@ void StreamWriter::WriteFileHeader(const FrameCanvas &frame, size_t len) {
 }
 
 StreamReader::StreamReader(StreamIO *io)
-  : io_(io), state_(STREAM_AT_BEGIN), header_frame_buffer_(NULL) {
+    : io_(io), state_(STREAM_AT_BEGIN), header_frame_buffer_(NULL) {
   io_->Rewind();
 }
-StreamReader::~StreamReader() { delete [] header_frame_buffer_; }
+StreamReader::~StreamReader() { delete[] header_frame_buffer_; }
 
 void StreamReader::Rewind() {
   io_->Rewind();
   state_ = STREAM_AT_BEGIN;
 }
 
-bool StreamReader::GetNext(FrameCanvas *frame, uint32_t* hold_time_us) {
-  if (state_ == STREAM_AT_BEGIN && !ReadFileHeader(*frame)) return false;
-  if (state_ != STREAM_READING) return false;
+bool StreamReader::GetNext(FrameCanvas *frame, uint32_t *hold_time_us) {
+  if (state_ == STREAM_AT_BEGIN && !ReadFileHeader(*frame))
+    return false;
+  if (state_ != STREAM_READING)
+    return false;
 
   // Read header and expected buffer size.
   if (!FullRead(io_, header_frame_buffer_,
@@ -149,7 +156,7 @@ bool StreamReader::GetNext(FrameCanvas *frame, uint32_t* hold_time_us) {
     return false;
   }
 
-  const FrameHeader &h = *reinterpret_cast<FrameHeader*>(header_frame_buffer_);
+  const FrameHeader &h = *reinterpret_cast<FrameHeader *>(header_frame_buffer_);
 
   // TODO: we might allow for this to be a kFileMagicValue, to allow people
   // to just concatenate streams. In that case, we just would need to read
@@ -165,7 +172,8 @@ bool StreamReader::GetNext(FrameCanvas *frame, uint32_t* hold_time_us) {
   if (h.size != frame_buf_size_)
     return false;
 
-  if (hold_time_us) *hold_time_us = h.hold_time_us;
+  if (hold_time_us)
+    *hold_time_us = h.hold_time_us;
   return frame->Deserialize(header_frame_buffer_ + sizeof(FrameHeader),
                             frame_buf_size_);
 }
@@ -177,16 +185,18 @@ bool StreamReader::ReadFileHeader(const FrameCanvas &frame) {
     state_ = STREAM_ERROR;
     return false;
   }
-  if ((int)header.width != frame.width()
-      || (int)header.height != frame.height()) {
-    fprintf(stderr, "This stream is for %dx%d, can't play on %dx%d. "
+  if ((int)header.width != frame.width() ||
+      (int)header.height != frame.height()) {
+    fprintf(stderr,
+            "This stream is for %dx%d, can't play on %dx%d. "
             "Please use the same settings for record/replay\n",
             header.width, header.height, frame.width(), frame.height());
     state_ = STREAM_ERROR;
     return false;
   }
   if (header.is_wide_gpio != (sizeof(gpio_bits_t) == 8)) {
-    fprintf(stderr, "This stream was written with %s GPIO width support but "
+    fprintf(stderr,
+            "This stream was written with %s GPIO width support but "
             "this library is compiled with %d bit GPIO width (see "
             "ENABLE_WIDE_GPIO_COMPUTE_MODULE setting in lib/Makefile)\n",
             header.is_wide_gpio ? "wide (64-bit)" : "narrow (32-bit)",
@@ -197,7 +207,7 @@ bool StreamReader::ReadFileHeader(const FrameCanvas &frame) {
   state_ = STREAM_READING;
   frame_buf_size_ = header.buf_size;
   if (!header_frame_buffer_)
-    header_frame_buffer_ = new char [ sizeof(FrameHeader) + header.buf_size ];
+    header_frame_buffer_ = new char[sizeof(FrameHeader) + header.buf_size];
   return true;
 }
-}  // namespace rgb_matrix
+} // namespace rgb_matrix
