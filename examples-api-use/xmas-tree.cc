@@ -1,6 +1,8 @@
 #include <atomic>
 #include <memory>
 #include <thread>
+#include <vector>
+#include <random>
 
 #include <signal.h>
 
@@ -8,14 +10,23 @@
 
 namespace rgb = rgb_matrix;
 
+struct Snowflake {
+  int x = 0;
+  int y = 0;
+  int speed = 0;
+
+  Snowflake(int X, int Y, int S): x(X), y(Y), speed(S) {}
+};
+
 static auto create_options() -> rgb::RGBMatrix::Options;
 static void draw(rgb::Canvas *c, std::atomic_bool &flag);
 
 static std::atomic_bool STOP_FLAG = false;
 static void interrupt(int signo);
 
-static constexpr rgb::Color WHITE = rgb::Color(255, 255, 255);
-static constexpr rgb::Color BROWN = rgb::Color(165, 42, 42);
+static constexpr auto WHITE = rgb::Color(255, 255, 255);
+static constexpr auto BLACK = rgb::Color(0, 0, 0);
+static constexpr auto BROWN = rgb::Color(165, 42, 42);
 static constexpr auto GREEN = rgb::Color(0, 255, 0);
 
 int main() {
@@ -58,8 +69,23 @@ static void draw(rgb::Canvas *c, std::atomic_bool &flag) {
   const int width = c->width() - 1;
   const int height = c->height() - 1;
 
+  // Initialize snowflakes
+  constexpr std::size_t snowflakes_count = 50;
+  std::vector<Snowflake> snowflakes;
+  snowflakes.reserve(snowflakes_count);
+
+  std::random_device rd;
+  std::mt19937 gen(rd());
+
+  std::uniform_int_distribution<> x_distrib(0, width);
+  std::uniform_int_distribution<> y_distrib(0, height - snow_height);
+  std::uniform_int_distribution<> speed_distrib(1, 3);
+  for (std::size_t i = 0; i < snowflakes_count; ++i) {
+    snowflakes.emplace_back(x_distrib(gen), y_distrib(gen), speed_distrib(gen));
+  }
+
   for (;!flag.load(std::memory_order_relaxed);) {
-    //rgb::DrawCircle(c, width / 2, height / 2, 10, WHITE);
+    c->Clear();
 
     // Draw snow on the ground.
     for (int i = 0; i < snow_height; ++i) {
@@ -96,7 +122,20 @@ static void draw(rgb::Canvas *c, std::atomic_bool &flag) {
       rgb::DrawLine(c, x + 1, y, x + tree_width - 1, y, GREEN);
     }
 
-    std::this_thread::sleep_for(100ms);
+    // Draw snow
+    {
+      for (auto& flake : snowflakes) {
+        c->SetPixel(flake.x, flake.y, 255, 255, 255);
+        flake.y += flake.speed;
+        if (flake.y > height - snow_height) {
+          flake.x = x_distrib(gen);
+          flake.y = y_distrib(gen);
+          flake.speed = speed_distrib(gen);
+        }
+      }
+    }
+
+    std::this_thread::sleep_for(225ms);
   }
 }
 
